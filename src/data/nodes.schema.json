@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$comment": "Схема одного узла для MemoryReplay.jsx → константа NODES",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "tag", "x", "y", "w", "h", "who", "when", "what", "signals", "alts", "lost"],
+    "properties": {
+
+      "id": {
+        "type": "string",
+        "$comment": "Уникальный идентификатор артефакта. Примеры: FIX-008, #42, DECISION-001, ADR-002",
+        "examples": ["FIX-008", "#42", "DECISION-001", "ADR-002", "PR-17"]
+      },
+
+      "tag": {
+        "type": "string",
+        "$comment": "Тип узла. Влияет на визуальный стиль и колонку в auto-layout.",
+        "enum": ["bug", "fix", "invoice", "pr", "issue", "decision", "adr"],
+        "$enumComments": {
+          "bug":      "Дефект — левая колонка (сигналы)",
+          "fix":      "Исправление — левая колонка (сигналы)",
+          "invoice":  "Бизнес-инцидент — левая колонка (сигналы)",
+          "pr":       "Pull Request — левая колонка (сигналы)",
+          "issue":    "Generic issue — левая колонка (сигналы)",
+          "decision": "Решение — центральная колонка. ВЫДЕЛЯЕТСЯ визуально.",
+          "adr":      "Architecture Decision Record — правая колонка"
+        }
+      },
+
+      "x": { "type": "number", "$comment": "Координата X левого верхнего угла узла в SVG. Вычисляется auto-layout или задаётся вручную." },
+      "y": { "type": "number", "$comment": "Координата Y." },
+      "w": { "type": "number", "$comment": "Ширина узла. Рекомендуется 110–140px. decision-узлы чуть шире." },
+      "h": { "type": "number", "$comment": "Высота узла. Рекомендуется 42–48px." },
+
+      "who": {
+        "type": "string",
+        "$comment": "Кто создал или принял решение. GitHub login, имя, роль — что угодно.",
+        "examples": ["pavel-d", "Arch review: Pavel, Mariana, CTO", "sales-ops"]
+      },
+
+      "when": {
+        "type": "string",
+        "format": "date",
+        "$comment": "Дата в формате YYYY-MM-DD.",
+        "examples": ["2024-03-20"]
+      },
+
+      "what": {
+        "type": "string",
+        "$comment": "Одно предложение: что произошло или что решили. Берётся из title issue/PR.",
+        "examples": ["Duplicate charge on payment retry", "Add idempotency key at API gateway level"]
+      },
+
+      "signals": {
+        "type": "array",
+        "items": { "type": "string" },
+        "$comment": "Ссылки на артефакты, которые привели к этому узлу. Используются для построения рёбер графа. Формат свободный: #42, FIX-008, INV-003.",
+        "examples": [["FIX-008", "INV-003", "BUG-014"], ["#8", "#14"]]
+      },
+
+      "alts": {
+        "type": "array",
+        "items": { "type": "string" },
+        "$comment": "Альтернативы, которые рассматривались и отпали. КРИТИЧЕСКИ ВАЖНОЕ ПОЛЕ — именно здесь хранится утерянный контекст решения. Заполняй вручную из discussion в issue, Slack, ретро.",
+        "examples": [
+          ["Redis distributed lock", "DB advisory lock", "UI-level button disable"]
+        ]
+      },
+
+      "lost": {
+        "type": "string",
+        "$comment": "Контекст, который нигде не записан. Обсуждения в Slack, вербальные договорённости, отклонённые идеи без объяснения причин. ЭТО ПОЛЕ НЕ СУЩЕСТВУЕТ НИ В ОДНОМ API — заполняется только руками. Именно оно отличает Memory Replay от обычного дашборда.",
+        "examples": [
+          "TTL discussion (24h vs 7d) resolved verbally in standup — never written down.",
+          "Rejected alternatives section in ADR was left empty. All context lost.",
+          ""
+        ]
+      }
+    }
+  }
+}

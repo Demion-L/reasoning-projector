@@ -1,0 +1,94 @@
+[
+  {
+    "id": "FIX-008",
+    "tag": "fix",
+    "who": "mariana-t",
+    "when": "2024-03-11",
+    "what": "Duplicate charge on payment retry",
+    "signals": [
+      "#14"
+    ],
+    "alts": [],
+    "lost": "UI-level fix considered and rejected in standup — not documented anywhere.",
+    "x": 40,
+    "y": 32,
+    "w": 120,
+    "h": 44
+  },
+  {
+    "id": "INV-003",
+    "tag": "invoice",
+    "who": "sales-ops",
+    "when": "2024-03-14",
+    "what": "Invoice sent twice to client via webhook retry",
+    "signals": [
+      "#8"
+    ],
+    "alts": [
+      "DB unique constraint on invoice_id"
+    ],
+    "lost": "Constraint option closed only invoices — general problem remained.",
+    "x": 40,
+    "y": 108,
+    "w": 120,
+    "h": 44
+  },
+  {
+    "id": "BUG-014",
+    "tag": "bug",
+    "who": "pavel-d",
+    "when": "2024-03-18",
+    "what": "Race condition: two workers processing same event",
+    "signals": [
+      "#8",
+      "#3"
+    ],
+    "alts": [
+      "Redis distributed lock",
+      "DB advisory lock"
+    ],
+    "lost": "Redis rejected due to extra dependency. Advisory lock too narrow. Neither in ADR.",
+    "x": 40,
+    "y": 184,
+    "w": 120,
+    "h": 44
+  },
+  {
+    "id": "DECISION-001",
+    "tag": "decision",
+    "who": "arch-review",
+    "when": "2024-03-20",
+    "what": "Add idempotency key at API gateway level",
+    "signals": [
+      "FIX-008",
+      "INV-003",
+      "BUG-014"
+    ],
+    "alts": [
+      "UI-fix",
+      "DB constraint",
+      "Redis lock"
+    ],
+    "lost": "TTL discussion (24h vs 7d) resolved verbally — rationale never written down.",
+    "x": 280,
+    "y": 108,
+    "w": 120,
+    "h": 44
+  },
+  {
+    "id": "ADR-002",
+    "tag": "adr",
+    "who": "pavel-d",
+    "when": "2024-03-21",
+    "what": "ADR: Idempotency via API Gateway — covers /payment /invoice /event-processor",
+    "signals": [
+      "DECISION-001"
+    ],
+    "alts": [],
+    "lost": "Rejected alternatives section left empty in ADR. Context lost.",
+    "x": 540,
+    "y": 108,
+    "w": 120,
+    "h": 44
+  }
+]

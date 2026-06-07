@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --background: #04040A;
+  --foreground: #F0EEE8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@keyframes scan {
+  0%   { top: -1px; }
+  100% { top: 100%; }
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
