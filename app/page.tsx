@@ -312,11 +312,13 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
   useEffect(() => { const id = setInterval(() => setBlink(b => !b), 900); return () => clearInterval(id); }, []);
 
   return (
-    <div style={{
+    <div data-testid="rp-header" style={{
       position: "relative", zIndex: 20, flexShrink: 0,
       display: "flex", alignItems: "center", justifyContent: "space-between",
+      gap: 16,
       padding: "0 24px", height: 50,
       margin: "10px 10px 0 10px",
+      minWidth: 0, overflow: "hidden",
       borderRadius: 6,
       border: "1px solid rgba(255,255,255,0.18)",
       background: "linear-gradient(135deg, rgba(255,255,255,0.11), rgba(120,170,210,0.04) 55%, rgba(255,255,255,0.02))",
@@ -325,7 +327,7 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
       boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
       {/* Logo + name */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         <div style={{
           width: 28, height: 28,
           border: `1px solid ${C.cyanDim}`,
@@ -333,7 +335,7 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
           position: "relative",
           boxShadow: `inset 0 0 10px ${C.cyanGlow2}, 0 0 12px ${C.cyanGlow2}`,
         }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: C.cyan, letterSpacing: 1 }}>RP</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.cyan, letterSpacing: 1 }}>RP</span>
           {/* corner ticks */}
           {[{t:-2,l:-2},{t:-2,r:-2},{b:-2,l:-2},{b:-2,r:-2}].map((p,i) => (
             <div key={i} style={{
@@ -350,38 +352,38 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
           ))}
         </div>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.textBright, letterSpacing: "0.22em", textShadow: `0 0 10px ${C.cyanGlow}` }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.textBright, letterSpacing: "0.22em", textShadow: `0 0 10px ${C.cyanGlow}` }}>
             REASONING PROJECTOR
           </div>
-          <div style={{ fontSize: 7, color: C.text, letterSpacing: "0.22em", marginTop: 1 }}>
+          <div style={{ fontSize: 9, color: C.text, letterSpacing: "0.22em", marginTop: 1 }}>
             DECISION INTELLIGENCE SYSTEM · v0.1.0
           </div>
         </div>
       </div>
 
       {/* Metrics */}
-      <div style={{ display: "flex", gap: 30, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 30, alignItems: "center", flexShrink: 1 }}>
         {([
           { label: "HEL",   value: time,               color: C.cyan },
           { label: "PHASE", value: phase.toUpperCase(), color: C.cyan },
         ] as const).map(({ label, value, color }) => (
           <div key={label} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.28em", marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 10, color, letterSpacing: "0.06em", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.28em", marginBottom: 2 }}>{label}</div>
+            <div style={{ fontSize: 12, color, letterSpacing: "0.06em", fontVariantNumeric: "tabular-nums" }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* Status chips */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: blink ? C.green : "transparent", border: `1px solid ${C.green}`, transition: "background 0.4s" }} />
-          <span style={{ fontSize: 8, color: C.green, letterSpacing: "0.18em" }}>NOMINAL</span>
+          <span style={{ fontSize: 10, color: C.green, letterSpacing: "0.18em" }}>NOMINAL</span>
         </div>
         <div style={{ width: "0.5px", height: 14, background: C.border }} />
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.amber }} />
-          <span style={{ fontSize: 8, color: C.amber, letterSpacing: "0.14em" }}>{debtCount} DEBT DETECTED</span>
+          <span style={{ fontSize: 10, color: C.amber, letterSpacing: "0.14em" }}>{debtCount} DEBT DETECTED</span>
         </div>
       </div>
     </div>
@@ -419,7 +421,7 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
   }, []);
 
   return (
-    <div style={{
+    <div data-testid="rp-left-panel" style={{
       width: 160, flexShrink: 0,
       margin: "10px",
       borderRadius: 6,
@@ -432,7 +434,7 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
       boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
       <div style={{
-        height: "100%", overflowY: "auto",
+        height: "100%", overflowY: "auto", overflowX: "hidden",
         padding: "14px 13px",
         display: "flex", flexDirection: "column", gap: 11,
       }}>
@@ -451,10 +453,10 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
       <TR label="ENGINE"   val="MiniCPM-o" color={C.textBright} />
       <TR label="MODE"     val="AgentCPM"  color={C.text} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 9, color: C.text, letterSpacing: "0.08em" }}>STATUS</span>
+        <span style={{ fontSize: 11, color: C.text, letterSpacing: "0.08em" }}>STATUS</span>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.green, boxShadow: `0 0 5px ${C.green}` }} />
-          <span style={{ fontSize: 9, color: C.green, letterSpacing: "0.1em" }}>READY</span>
+          <span style={{ fontSize: 11, color: C.green, letterSpacing: "0.1em" }}>READY</span>
         </div>
       </div>
       <HR />
@@ -473,8 +475,8 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
         "Suggest Missing Artifacts",
       ].map((role, i) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-          <span style={{ color: C.cyanDim, fontSize: 9, lineHeight: 1.55, flexShrink: 0 }}>›</span>
-          <span style={{ fontSize: 9, color: C.text, lineHeight: 1.55, letterSpacing: "0.02em" }}>{role}</span>
+          <span style={{ color: C.cyanDim, fontSize: 11, lineHeight: 1.55, flexShrink: 0 }}>›</span>
+          <span style={{ fontSize: 11, color: C.text, lineHeight: 1.55, letterSpacing: "0.02em" }}>{role}</span>
         </div>
       ))}
       </div>
@@ -497,7 +499,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
   const wave = Array.from({ length: WL }, (_, i) => Math.round(Math.abs(Math.sin((i - tick) * 0.55)) * 24 + 3));
 
   return (
-    <div style={{
+    <div data-testid="rp-right-panel" style={{
       width: 160, flexShrink: 0,
       margin: "10px",
       borderRadius: 6,
@@ -510,7 +512,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
       boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
       <div style={{
-        height: "100%", overflowY: "auto",
+        height: "100%", overflowY: "auto", overflowX: "hidden",
         padding: "14px 13px",
         display: "flex", flexDirection: "column", gap: 11,
       }}>
@@ -544,7 +546,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
             style={{
-              fontSize: 9, letterSpacing: "0.06em", lineHeight: 1.6,
+              fontSize: 11, letterSpacing: "0.06em", lineHeight: 1.6,
               padding: "3px 4px 3px 7px",
               cursor: "pointer",
               borderLeft: `1.5px solid ${active ? C.cyan : hover ? C.cyanDim : n.tag === "decision" ? C.cyanDim : C.border}`,
@@ -555,7 +557,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
             }}
           >
             {n.id}
-            <span style={{ marginLeft: 5, fontSize: 8, color: active ? C.cyanDim : C.textDim, letterSpacing: "0.14em" }}>{n.tag}</span>
+            <span style={{ marginLeft: 5, fontSize: 10, color: active ? C.cyanDim : C.textDim, letterSpacing: "0.14em" }}>{n.tag}</span>
           </div>
         );
       })}
@@ -567,14 +569,14 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
 // ─── PANEL HELPERS ────────────────────────────────────────────────────────────
 
 function Sect({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 8, color: C.text, letterSpacing: "0.28em", textTransform: "uppercase" as const }}>{children}</div>;
+  return <div style={{ fontSize: 10, color: C.text, letterSpacing: "0.28em", textTransform: "uppercase" as const }}>{children}</div>;
 }
 function HR() { return <div style={{ height: "0.5px", background: C.border }} />; }
 function TR({ label, val, color, glow }: { label: string; val: string; color: string; glow?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-      <span style={{ fontSize: 9, color: C.text, letterSpacing: "0.08em" }}>{label}</span>
-      <span style={{ fontSize: 11, color, fontVariantNumeric: "tabular-nums", textShadow: glow ? `0 0 8px ${color}` : undefined }}>{val}</span>
+      <span style={{ fontSize: 11, color: C.text, letterSpacing: "0.08em" }}>{label}</span>
+      <span style={{ fontSize: 13, color, fontVariantNumeric: "tabular-nums", textShadow: glow ? `0 0 8px ${color}` : undefined }}>{val}</span>
     </div>
   );
 }
@@ -583,10 +585,10 @@ function SR({ label, ok, warn }: { label: string; ok?: boolean; warn?: boolean }
   const status = warn ? "WARN" : ok ? "OK" : "FAIL";
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 9, color: C.text, letterSpacing: "0.05em" }}>{label}</span>
+      <span style={{ fontSize: 11, color: C.text, letterSpacing: "0.05em" }}>{label}</span>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <div style={{ width: 4, height: 4, borderRadius: "50%", background: color }} />
-        <span style={{ fontSize: 8, color, letterSpacing: "0.15em" }}>{status}</span>
+        <span style={{ fontSize: 10, color, letterSpacing: "0.15em" }}>{status}</span>
       </div>
     </div>
   );
@@ -619,26 +621,28 @@ function BottomBar() {
   const [seq, setSeq] = useState(0);
   useEffect(() => { const id = setInterval(() => setSeq(s => s + 1), 80); return () => clearInterval(id); }, []);
   return (
-    <div style={{
+    <div data-testid="rp-footer" style={{
       position: "relative", zIndex: 20, flexShrink: 0,
       display: "flex", alignItems: "center", justifyContent: "space-between",
+      gap: 12,
       padding: "0 20px", height: 26,
+      minWidth: 0, overflow: "hidden",
       borderTop: `0.5px solid ${C.border}`,
       background: "rgba(2,4,8,0.96)",
     }}>
-      <div style={{ display: "flex", gap: 20 }}>
+      <div style={{ display: "flex", gap: 20, flex: 1, minWidth: 0, overflow: "hidden" }}>
         {[
           { t: "GRAPH ENGINE · READY" },
           { t: "REPLAY ENGINE · READY" },
           { t: "DEBT SCANNER · 1 FLAGGED", warn: true },
           { t: "ADR PARSER · NOMINAL" },
         ].map(({ t, warn }, i) => (
-          <span key={i} style={{ fontSize: 7, letterSpacing: "0.2em", color: warn ? C.amber : C.textDim }}>
+          <span key={i} style={{ fontSize: 9, letterSpacing: "0.2em", color: warn ? C.amber : C.textDim, flexShrink: 1, whiteSpace: "nowrap" }}>
             {t}
           </span>
         ))}
       </div>
-      <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em", fontVariantNumeric: "tabular-nums" }}>
+      <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
         SEQ {String(seq).padStart(7, "0")}
       </span>
     </div>
@@ -653,9 +657,9 @@ const s = {
     lineHeight: 1.3, color: C.textBright,
     textShadow: `0 0 48px rgba(79,195,247,0.18)`,
   },
-  label: { fontSize: 11, color: C.textDim, letterSpacing: "0.22em", marginTop: 10, textAlign: "center" as const },
+  label: { fontSize: 13, color: C.textDim, letterSpacing: "0.22em", marginTop: 10, textAlign: "center" as const },
   ghostBtn: {
-    marginTop: 28, padding: "9px 32px", fontSize: 11, letterSpacing: "0.25em",
+    marginTop: 28, padding: "9px 32px", fontSize: 13, letterSpacing: "0.25em",
     background: "transparent",
     border: `0.5px solid ${C.cyanDim}`,
     color: C.cyan, cursor: "pointer",
@@ -684,30 +688,30 @@ const s = {
     borderBottom: `0.5px solid ${C.border}`,
     display: "flex", alignItems: "center", justifyContent: "space-between",
   },
-  panelId:   { fontSize: 14, fontWeight: 500, color: C.textBright, letterSpacing: "0.08em" },
-  panelTag:  { fontSize: 9,  letterSpacing: "0.25em", color: C.textDim, padding: "3px 8px", border: `0.5px solid ${C.border}` },
+  panelId:   { fontSize: 16, fontWeight: 500, color: C.textBright, letterSpacing: "0.08em" },
+  panelTag:  { fontSize: 11,  letterSpacing: "0.25em", color: C.textDim, padding: "3px 8px", border: `0.5px solid ${C.border}` },
   panelBody: { padding: "12px 16px" },
   row:  { display: "flex", gap: 12, marginBottom: 10, alignItems: "flex-start" as const },
-  key:  { fontSize: 11, color: C.textDim, letterSpacing: "0.08em", width: 90, flexShrink: 0, paddingTop: 2 },
-  val:  { fontSize: 13, color: C.text, lineHeight: 1.65 },
+  key:  { fontSize: 13, color: C.textDim, letterSpacing: "0.08em", width: 90, flexShrink: 0, paddingTop: 2 },
+  val:  { fontSize: 15, color: C.text, lineHeight: 1.65 },
   signal: {
-    display: "inline-block", fontSize: 9, letterSpacing: "0.1em",
+    display: "inline-block", fontSize: 11, letterSpacing: "0.1em",
     padding: "2px 8px", margin: "2px 4px 2px 0",
     border: `0.5px solid ${C.border}`, color: C.textDim,
   },
   alt: {
-    display: "block", fontSize: 12, color: C.textDim,
+    display: "block", fontSize: 14, color: C.textDim,
     margin: "3px 0", paddingLeft: 8, borderLeft: `2px solid ${C.border}`,
   },
-  lost: { fontSize: 12, color: C.red, letterSpacing: "0.02em" },
+  lost: { fontSize: 14, color: C.red, letterSpacing: "0.02em" },
   panelFooter: {
     padding: "10px 16px",
     borderTop: `0.5px solid ${C.border}`,
     display: "flex", gap: 12, alignItems: "center",
   },
-  footerLabel: { fontSize: 11, color: C.textDim, letterSpacing: "0.08em" },
+  footerLabel: { fontSize: 13, color: C.textDim, letterSpacing: "0.08em" },
   smBtn: {
-    padding: "5px 14px", fontSize: 10, letterSpacing: "0.18em",
+    padding: "5px 14px", fontSize: 12, letterSpacing: "0.18em",
     background: "transparent", border: `0.5px solid ${C.border}`,
     color: C.textDim, cursor: "pointer", fontFamily: C.font,
     borderRadius: 0, transition: "color 0.2s, border-color 0.2s",
@@ -776,8 +780,8 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
 
   const ValidationRow = ({ label, ok }: { label: string; ok: boolean }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-      <span style={{ fontSize: 11, color: ok ? C.green : C.red, fontFamily: C.font }}>{ok ? "✓" : "✗"}</span>
-      <span style={{ fontSize: 10, color: ok ? C.green : C.red, letterSpacing: "0.08em" }}>{label}</span>
+      <span style={{ fontSize: 13, color: ok ? C.green : C.red, fontFamily: C.font }}>{ok ? "✓" : "✗"}</span>
+      <span style={{ fontSize: 12, color: ok ? C.green : C.red, letterSpacing: "0.08em" }}>{label}</span>
     </div>
   );
 
@@ -785,7 +789,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
     <button
       onClick={() => { setInputMode(mode); setValidation(null); }}
       style={{
-        flex: 1, padding: "8px 0", fontSize: 9, letterSpacing: "0.22em",
+        flex: 1, padding: "8px 0", fontSize: 11, letterSpacing: "0.22em",
         background: inputMode === mode ? "rgba(79,195,247,0.08)" : "transparent",
         border: "none",
         borderBottom: `1.5px solid ${inputMode === mode ? C.cyan : C.border}`,
@@ -803,13 +807,13 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
     }}>
       {/* Title */}
       <div style={{ textAlign: "center", marginBottom: 4 }}>
-        <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.36em", marginBottom: 8 }}>
+        <div style={{ fontSize: 13, color: C.textDim, letterSpacing: "0.36em", marginBottom: 8 }}>
           MEMORY ARCHIVE LOADER
         </div>
         <div style={{ fontSize: 22, fontWeight: 500, color: C.textBright, letterSpacing: "0.06em" }}>
           Select artifact source
         </div>
-        <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, letterSpacing: "0.04em" }}>
+        <div style={{ fontSize: 13, color: C.textDim, marginTop: 6, letterSpacing: "0.04em" }}>
           Load a reasoning dataset to begin reconstruction
         </div>
       </div>
@@ -830,10 +834,10 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.18em", color: C.cyan }}>
+          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "0.18em", color: C.cyan }}>
             ▶▶  LOAD DEMO DATASET
           </span>
-          <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.12em" }}>
+          <span style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.12em" }}>
             src/data/demo/nodes.json  ·  pre-validated  ·  ready to reconstruct
           </span>
         </div>
@@ -843,7 +847,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
       {/* Divider */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1, height: "0.5px", background: C.border }} />
-        <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.28em" }}>OR</span>
+        <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.28em" }}>OR</span>
         <div style={{ flex: 1, height: "0.5px", background: C.border }} />
       </div>
 
@@ -879,10 +883,10 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
               }}
             >
               <div style={{ fontSize: 22, color: dragging ? C.cyan : C.textDim, transition: "color 0.2s" }}>⬆</div>
-              <div style={{ fontSize: 11, color: dragging ? C.cyan : C.text, letterSpacing: "0.1em" }}>
+              <div style={{ fontSize: 13, color: dragging ? C.cyan : C.text, letterSpacing: "0.1em" }}>
                 {dragging ? "DROP TO LOAD" : "DRAG & DROP  nodes.json"}
               </div>
-              <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.12em" }}>
+              <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.12em" }}>
                 or click to browse  ·  .json only
               </div>
             </div>
@@ -900,7 +904,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
                 width: "100%", height: 140, boxSizing: "border-box",
                 background: "rgba(1,5,11,0.9)", color: C.text,
                 border: `0.5px solid ${C.border}`, borderRadius: 0,
-                fontFamily: C.font, fontSize: 10, lineHeight: 1.6,
+                fontFamily: C.font, fontSize: 12, lineHeight: 1.6,
                 padding: "10px 12px", resize: "vertical",
                 outline: "none",
               }}
@@ -910,7 +914,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
                 onClick={onPasteParse}
                 disabled={!pasteText.trim()}
                 style={{
-                  padding: "6px 18px", fontSize: 9, letterSpacing: "0.22em",
+                  padding: "6px 18px", fontSize: 11, letterSpacing: "0.22em",
                   background: "transparent",
                   border: `0.5px solid ${pasteText.trim() ? C.cyanDim : C.border}`,
                   color: pasteText.trim() ? C.cyan : C.textDim,
@@ -933,7 +937,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
           background: validation.ok ? "rgba(79,195,247,0.03)" : "rgba(239,83,80,0.05)",
         }}>
           {!validation.ok && (
-            <div style={{ fontSize: 10, color: C.red, letterSpacing: "0.08em", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: C.red, letterSpacing: "0.08em", marginBottom: 10 }}>
               ✗  {validation.error}
             </div>
           )}
@@ -962,7 +966,7 @@ function IngestScreen({ onLoad }: { onLoad: (nodes: NodeData[]) => void }) {
                     <div style={{ fontSize: 18, fontWeight: 500, color: C.cyan, fontVariantNumeric: "tabular-nums" }}>
                       {val}
                     </div>
-                    <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.18em", marginTop: 3 }}>
+                    <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.18em", marginTop: 3 }}>
                       {label.toUpperCase()}
                     </div>
                   </div>
@@ -1016,11 +1020,14 @@ export default function MemoryReplay() {
   const progress = ((replayIdx + 1) / REPLAY_STEPS.length) * 100;
 
   return (
-    <div style={{
+    <div data-testid="rp-root" style={{
       fontFamily: C.font,
       background: C.bg,
       color: C.text,
       height: "100vh",
+      maxHeight: "100vh",
+      width: "100vw",
+      maxWidth: "100vw",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -1031,11 +1038,11 @@ export default function MemoryReplay() {
       <GridOverlay />
       <TopHUD phase={phase} debtCount={debtCount} />
 
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative", zIndex: 10 }}>
+      <div data-testid="rp-main-row" style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative", zIndex: 10, minHeight: 0 }}>
         <LeftTelemetry nodes={activeNodes} edgeCount={activeEdges.length} depth={depth} debtCount={debtCount} />
 
         {/* ── CENTER ── */}
-        <div style={{
+        <div data-testid="rp-center" style={{
           flex: 1, minWidth: 0,
           margin: "10px 0",
           borderRadius: 6,
@@ -1047,11 +1054,12 @@ export default function MemoryReplay() {
           display: "flex", flexDirection: "column",
           alignItems: "center",
           justifyContent: phase === "graph" ? "flex-start" : "center",
-          padding: "2rem",
-          paddingTop: phase === "graph" ? "1.5rem" : "2rem",
+          padding: "1.5rem 2rem",
+          paddingTop: phase === "graph" ? "1.25rem" : "1.5rem",
           position: "relative",
           overflowX: "hidden",
           overflowY: "auto",
+          boxSizing: "border-box",
         }}>
           <ScanLine active={phase === "replay"} />
 
@@ -1145,7 +1153,7 @@ export default function MemoryReplay() {
                   allNodes={activeNodes}
                 />
               ) : (
-                <div style={{ marginTop: 28, textAlign: "center", fontSize: 9, color: C.textDim, letterSpacing: "0.16em" }}>
+                <div style={{ marginTop: 28, textAlign: "center", fontSize: 11, color: C.textDim, letterSpacing: "0.16em" }}>
                   click a node to open reconstruction
                 </div>
               )}
@@ -1267,12 +1275,12 @@ function GraphSVG({ nodes, edges, selected, onSelect }: {
               filter={isSel ? "url(#glow)" : undefined}
             />
             <text x={n.x+n.w/2} y={n.y+n.h/2-6}
-              fontFamily={C.font} fontSize={isSel ? 12 : 11} fontWeight={isSel ? 700 : 500}
+              fontFamily={C.font} fontSize={isSel ? 14 : 13} fontWeight={isSel ? 700 : 500}
               fill={isSel ? C.cyan : isD ? C.text : "#4a7a94"} textAnchor="middle">
               {n.id}
             </text>
             <text x={n.x+n.w/2} y={n.y+n.h/2+9}
-              fontFamily={C.font} fontSize={8} fill={C.textDim}
+              fontFamily={C.font} fontSize={10} fill={C.textDim}
               textAnchor="middle" letterSpacing={1}>
               {n.tag}
             </text>
@@ -1293,7 +1301,7 @@ function DetailPanel({ node, onClose }: { node: NodeData; onClose: () => void })
         </div>
         <button
           onClick={onClose}
-          style={{ background: "none", border: "none", cursor: "pointer", color: C.textDim, fontSize: 14, lineHeight: 1, padding: "0 2px" }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: C.textDim, fontSize: 16, lineHeight: 1, padding: "0 2px" }}
           title="close"
         >×</button>
       </div>
@@ -1415,17 +1423,17 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
             boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
           }} />
           <span style={{
-            fontSize: 8, fontWeight: 700, letterSpacing: "0.32em",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.32em",
             color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}`,
           }}>
             RECONSTRUCTED MEMORY
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.12em" }}>{node.id}</span>
+          <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.12em" }}>{node.id}</span>
           <div style={{ width: "0.5px", height: 10, background: C.border }} />
           <span style={{
-            fontSize: 7, letterSpacing: "0.22em",
+            fontSize: 9, letterSpacing: "0.22em",
             color: done ? C.green : C.cyanDim,
             transition: "color 0.4s",
           }}>
@@ -1442,7 +1450,7 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
         <Brackets size={11} color="rgba(15,55,90,0.45)" />
 
         <pre style={{
-          fontFamily: C.font, fontSize: 11, lineHeight: 1.8,
+          fontFamily: C.font, fontSize: 13, lineHeight: 1.8,
           color: C.text, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word",
           textShadow: "0 0 14px rgba(79,195,247,0.1)",
         }}>
@@ -1470,7 +1478,7 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
               width: 4, height: 4, borderRadius: "50%",
               background: confidenceColor, boxShadow: `0 0 6px ${confidenceColor}`,
             }} />
-            <span style={{ fontSize: 8, color: confidenceColor, letterSpacing: "0.24em", fontWeight: 600 }}>
+            <span style={{ fontSize: 10, color: confidenceColor, letterSpacing: "0.24em", fontWeight: 600 }}>
               RECONSTRUCTION VERIFIED
             </span>
           </div>
@@ -1484,13 +1492,13 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
           borderTop: `0.5px solid rgba(15,55,90,0.5)`,
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+          <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
             SOURCE · ARTIFACT GRAPH · SIGNAL TRACES · CONTEXT RECOVERY
           </span>
           <button
             onClick={handleCopy}
             style={{
-              padding: "5px 14px", fontSize: 9, letterSpacing: "0.2em",
+              padding: "5px 14px", fontSize: 11, letterSpacing: "0.2em",
               background: copied ? `${C.green}1a` : "transparent",
               border: `0.5px solid ${copied ? C.green : C.cyanDim}`,
               color: copied ? C.green : C.cyan,
@@ -1512,16 +1520,16 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
 function CriticBlock({ label, items, empty }: { label: string; items: string[]; empty: string }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>{label}</div>
       {items.length > 0 ? (
         items.map((it, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 4 }}>
-            <span style={{ color: C.cyanDim, fontSize: 10, lineHeight: 1.6, flexShrink: 0 }}>›</span>
-            <span style={{ fontSize: 11, color: C.text, lineHeight: 1.6 }}>{it}</span>
+            <span style={{ color: C.cyanDim, fontSize: 12, lineHeight: 1.6, flexShrink: 0 }}>›</span>
+            <span style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{it}</span>
           </div>
         ))
       ) : (
-        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.04em", fontStyle: "italic" }}>{empty}</div>
+        <div style={{ fontSize: 12, color: C.textDim, letterSpacing: "0.04em", fontStyle: "italic" }}>{empty}</div>
       )}
     </div>
   );
@@ -1587,17 +1595,17 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
             boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
           }} />
           <span style={{
-            fontSize: 8, fontWeight: 700, letterSpacing: "0.32em",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.32em",
             color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}`,
           }}>
             AI CRITIC REPORT
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.12em" }}>{node.id}</span>
+          <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.12em" }}>{node.id}</span>
           <div style={{ width: "0.5px", height: 10, background: C.border }} />
           <span style={{
-            fontSize: 7, letterSpacing: "0.22em",
+            fontSize: 9, letterSpacing: "0.22em",
             color: loading ? C.cyanDim : C.green,
             transition: "color 0.4s",
           }}>
@@ -1611,7 +1619,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         <Brackets size={11} color="rgba(15,55,90,0.45)" />
 
         {loading || !report ? (
-          <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: 13, color: C.textDim, letterSpacing: "0.08em" }}>
             scanning reasoning for gaps…
           </div>
         ) : (
@@ -1620,7 +1628,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
             <CriticBlock label="WEAK ASSUMPTIONS"   items={report.weakAssumptions}    empty="none detected" />
 
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>DEBT RISK</div>
+              <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>DEBT RISK</div>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "4px 12px",
@@ -1629,7 +1637,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
                 boxShadow: `0 0 12px ${riskColor}22`,
               }}>
                 <div style={{ width: 4, height: 4, borderRadius: "50%", background: riskColor, boxShadow: `0 0 6px ${riskColor}` }} />
-                <span style={{ fontSize: 9, color: riskColor, letterSpacing: "0.24em", fontWeight: 600 }}>
+                <span style={{ fontSize: 11, color: riskColor, letterSpacing: "0.24em", fontWeight: 600 }}>
                   {report.debtRisk}
                 </span>
               </div>
@@ -1638,12 +1646,12 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
             <CriticBlock label="SUGGESTED ARTIFACTS" items={report.suggestedArtifacts} empty="no additional artifacts suggested" />
 
             <div>
-              <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>CONFIDENCE</div>
+              <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>CONFIDENCE</div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1, height: "2px", background: C.border, position: "relative" }}>
                   <div style={{ height: "2px", width: `${confidencePct}%`, background: C.cyan, boxShadow: `0 0 8px ${C.cyan}`, transition: "width 0.4s" }} />
                 </div>
-                <span style={{ fontSize: 11, color: C.cyan, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
+                <span style={{ fontSize: 13, color: C.cyan, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
                   {confidencePct}%
                 </span>
               </div>
@@ -1658,10 +1666,10 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         borderTop: `0.5px solid rgba(15,55,90,0.5)`,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span style={{ fontSize: 7, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
+        <span style={{ fontSize: 9, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
           {`CRITIC · OpenBMB MiniCPM4-8B · ${source === "openbmb" ? "LIVE" : "MOCKED"}`}
         </span>
-        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           {linked.length} LINKED ARTIFACT{linked.length === 1 ? "" : "S"}
         </span>
       </div>
@@ -1679,7 +1687,7 @@ function GlobalStat({ label, value, color }: { label: string; value: number; col
       background: "rgba(8,22,38,0.45)",
       padding: "10px 12px",
     }}>
-      <div style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.2em", marginBottom: 6, whiteSpace: "nowrap" }}>{label}</div>
+      <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.2em", marginBottom: 6, lineHeight: 1.3 }}>{label}</div>
       <div style={{ fontSize: 22, color, fontVariantNumeric: "tabular-nums", letterSpacing: "0.02em", lineHeight: 1 }}>{value}</div>
     </div>
   );
@@ -1721,16 +1729,16 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
             boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
           }} />
           <span style={{
-            fontSize: 8, fontWeight: 700, letterSpacing: "0.32em",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.32em",
             color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}`,
           }}>
             GLOBAL CRITIC SUMMARY
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.12em" }}>DATASET</span>
+          <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.12em" }}>DATASET</span>
           <div style={{ width: "0.5px", height: 10, background: C.border }} />
-          <span style={{ fontSize: 7, letterSpacing: "0.22em", color: C.green }}>COMPLETE</span>
+          <span style={{ fontSize: 9, letterSpacing: "0.22em", color: C.green }}>COMPLETE</span>
         </div>
       </div>
 
@@ -1747,12 +1755,12 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
 
         {/* Highest risk artifacts */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>HIGHEST RISK ARTIFACTS</div>
+          <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>HIGHEST RISK ARTIFACTS</div>
           {summary.highRiskArtifacts.length > 0 ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {summary.highRiskArtifacts.map((id) => (
                 <span key={id} style={{
-                  fontSize: 10, color: C.red, letterSpacing: "0.08em",
+                  fontSize: 12, color: C.red, letterSpacing: "0.08em",
                   padding: "3px 9px",
                   border: `0.5px solid ${C.red}`,
                   background: `${C.red}14`,
@@ -1762,7 +1770,7 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: 10, color: C.textDim, fontStyle: "italic" }}>none detected</div>
+            <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic" }}>none detected</div>
           )}
         </div>
 
@@ -1771,12 +1779,12 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
 
         {/* Overall confidence */}
         <div>
-          <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>OVERALL CONFIDENCE</div>
+          <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>OVERALL CONFIDENCE</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1, height: "2px", background: C.border, position: "relative" }}>
               <div style={{ height: "2px", width: `${confidencePct}%`, background: confColor, boxShadow: `0 0 8px ${confColor}`, transition: "width 0.4s" }} />
             </div>
-            <span style={{ fontSize: 11, color: confColor, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
+            <span style={{ fontSize: 13, color: confColor, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
               {confidencePct}%
             </span>
           </div>
@@ -1789,10 +1797,10 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
         borderTop: `0.5px solid rgba(15,55,90,0.5)`,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           CRITIC · DATASET-LEVEL · deterministic
         </span>
-        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           COMPANION TO PER-NODE REPORT
         </span>
       </div>

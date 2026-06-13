@@ -12,6 +12,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  /* Prevent body-level scrollbars from leaking around the full-page SPA root. */
+  overflow: hidden;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
