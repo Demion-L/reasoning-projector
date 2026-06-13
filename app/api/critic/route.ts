@@ -3,21 +3,15 @@
 // Request:  { node: CriticNode, linked: CriticNode[] }
 // Response: { report: CriticReport, source: "deterministic" | "openbmb" }
 //
-// Provider resolution order (first match wins):
-//   1. OPENBMB_API_KEY  → OpenBMB's own API
-//   2. HF_TOKEN         → HuggingFace Inference API
-//   3. (none)           → deterministic mock
+// Provider resolution:
+//   OPENBMB_API_KEY set  → live OpenBMB endpoint (MiniCPM4.1-8B)
+//   OPENBMB_API_KEY unset or call fails → deterministic mock fallback
 //
-// If the provider call fails for any reason (timeout, HTTP error, bad JSON),
-// the route falls back to the mock so the UI always gets a valid response.
 // The API key never leaves the server.
 
 import { NextRequest, NextResponse } from "next/server";
 import { runCritic } from "@/src/lib/critic";
-import {
-  makeOpenbmbProvider,
-  makeHfProvider,
-} from "@/src/lib/critic/providers/openbmbProvider";
+import { makeOpenbmbProvider } from "@/src/lib/critic/providers/openbmbProvider";
 import type { CriticInput } from "@/src/lib/critic";
 
 export const runtime = "nodejs";
@@ -30,19 +24,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const openbmbKey = process.env.OPENBMB_API_KEY;
-  const hfToken = process.env.HF_TOKEN;
+  const apiKey = process.env.OPENBMB_API_KEY;
 
-  if (openbmbKey || hfToken) {
-    const provider = openbmbKey
-      ? makeOpenbmbProvider(openbmbKey)
-      : makeHfProvider(hfToken!);
+  if (apiKey) {
+    console.log("[critic] provider selected: openbmb (MiniCPM4.1-8B)");
+    const provider = makeOpenbmbProvider(apiKey);
     try {
       const report = await runCritic(input, { provider });
       return NextResponse.json({ report, source: "openbmb" });
-    } catch(err) {
-      console.error("[critic] provider failed", err);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error("[critic] openbmb failed — falling back to deterministic:", reason);
     }
+  } else {
+    console.log("[critic] OPENBMB_API_KEY not set — using deterministic provider");
   }
 
   const report = await runCritic(input);

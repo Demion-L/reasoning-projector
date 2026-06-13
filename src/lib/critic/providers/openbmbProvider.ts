@@ -1,46 +1,44 @@
-// ─── AI CRITIC · OPENBMB / HUGGINGFACE PROVIDER ────────────────────────────────
+// ─── AI CRITIC · OPENBMB PROVIDER ────────────────────────────────────────────
 //
 // Server-only module — never import from client components.
 //
-// Two CriticProvider factories:
-//   makeOpenbmbProvider(apiKey)  — OpenBMB's own OpenAI-compatible API
-//   makeHfProvider(token)        — HuggingFace Inference API (same model)
+// Wraps the OpenBMB OpenAI-compatible chat-completions endpoint.
+// Base URL and model are overridable via env vars so the deployment
+// target can change without a code edit.
 //
-// Both use the same MiniCPM4-8B chat-completions payload and time out after
-// TIMEOUT_MS, propagating errors so the caller can fall back to the mock.
+// Env vars (set in .env.local):
+//   OPENBMB_API_KEY   — required to enable the live provider
+//   OPENBMB_BASE_URL  — host only, e.g. http://35.203.155.71:8001
+//                       defaults to the Zhong-hosted endpoint
+//   OPENBMB_MODEL     — model name sent in the request body
+//                       defaults to MiniCPM4.1-8B
 
 import type { CriticProvider } from "../types";
 
 const TIMEOUT_MS = 20_000;
 
-// Slug of the target model on HuggingFace.  Override with OPENBMB_MODEL if
-// the published slug changes (e.g. "openbmb/MiniCPM4.1-8B").
-const MODEL = process.env.OPENBMB_MODEL ?? "openbmb/MiniCPM4-8B";
+const MODEL =
+  process.env.OPENBMB_MODEL ?? "MiniCPM4.1-8B";
 
-// OpenBMB's own OpenAI-compatible endpoint.
-// Override base URL with OPENBMB_BASE_URL if their hosting address changes.
 const OPENBMB_BASE =
-  (process.env.OPENBMB_BASE_URL ?? "https://api.openbmb.cn").replace(/\/$/, "") + "/v1";
+  (process.env.OPENBMB_BASE_URL ?? "http://35.203.155.71:8001").replace(/\/$/, "") + "/v1";
 
-// HuggingFace Inference API — model-scoped OpenAI-compatible path.
-const HF_BASE = `https://api-inference.huggingface.co/models/${MODEL}/v1`;
+async function chatCompletion(apiKey: string, prompt: string): Promise<string> {
+  const endpoint = `${OPENBMB_BASE}/chat/completions`;
+  console.log(`[critic:openbmb] → ${endpoint}  model=${MODEL}`);
+  const t0 = Date.now();
 
-async function chatCompletion(
-  baseUrl: string,
-  authHeader: string,
-  prompt: string,
-): Promise<string> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/chat/completions`, {
+    res = await fetch(endpoint, {
       method: "POST",
       signal: ctrl.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: MODEL,
@@ -53,8 +51,11 @@ async function chatCompletion(
     clearTimeout(timer);
   }
 
+  const elapsed = Date.now() - t0;
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    console.error(`[critic:openbmb] ✗ HTTP ${res.status} in ${elapsed}ms — ${body.slice(0, 200)}`);
     throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
   }
 
@@ -62,16 +63,17 @@ async function chatCompletion(
     choices?: { message?: { content?: string } }[];
   };
   const text = json.choices?.[0]?.message?.content ?? "";
-  if (!text) throw new Error("empty response from model");
+
+  if (!text) {
+    console.error(`[critic:openbmb] ✗ empty response in ${elapsed}ms`);
+    throw new Error("empty response from model");
+  }
+
+  console.log(`[critic:openbmb] ✓ ${elapsed}ms  model=${MODEL}  chars=${text.length}`);
   return text;
 }
 
-/** CriticProvider backed by OpenBMB's own API (requires OPENBMB_API_KEY). */
+/** CriticProvider backed by the OpenBMB chat-completions endpoint. */
 export function makeOpenbmbProvider(apiKey: string): CriticProvider {
-  return (prompt: string) => chatCompletion(OPENBMB_BASE, `Bearer ${apiKey}`, prompt);
-}
-
-/** CriticProvider backed by HuggingFace Inference API (requires HF_TOKEN). */
-export function makeHfProvider(token: string): CriticProvider {
-  return (prompt: string) => chatCompletion(HF_BASE, `Bearer ${token}`, prompt);
+  return (prompt: string) => chatCompletion(apiKey, prompt);
 }

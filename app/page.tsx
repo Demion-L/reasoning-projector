@@ -471,7 +471,7 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
         </div>
         <div style={{ borderTop: `0.5px solid rgba(15,55,90,0.4)`, paddingTop: 5 }}>
           <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em", marginBottom: 2 }}>ENGINE</div>
-          <div style={{ fontSize: 12, color: C.textBright, letterSpacing: "0.04em" }}>MiniCPM4-8B</div>
+          <div style={{ fontSize: 12, color: C.textBright, letterSpacing: "0.04em" }}>MiniCPM4.1-8B</div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `0.5px solid rgba(15,55,90,0.4)`, paddingTop: 5 }}>
           <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>AgentCPM</span>
@@ -1691,7 +1691,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span style={{ fontSize: 9, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
-          {`CRITIC · OpenBMB MiniCPM4-8B · ${source === "openbmb" ? "LIVE" : "SOURCE: DETERMINISTIC CRITIC"}`}
+          {`CRITIC · OpenBMB MiniCPM4.1-8B · ${source === "openbmb" ? "LIVE" : "SOURCE: DETERMINISTIC CRITIC"}`}
         </span>
         <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           {linked.length} LINKED ARTIFACT{linked.length === 1 ? "" : "S"}
