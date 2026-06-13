@@ -1562,7 +1562,7 @@ function CriticBlock({ label, items, empty }: { label: string; items: string[]; 
 function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }) {
   const [report,  setReport]  = useState<CriticReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [source,  setSource]  = useState<"mocked" | "openbmb">("mocked");
+  const [source,  setSource]  = useState<"deterministic" | "openbmb">("deterministic");
 
   // Re-run the critic whenever the selected node (or its links) change.
   // Keyed on stable ids — `linked` is a fresh array each render, so depending on
@@ -1578,13 +1578,13 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
       body: JSON.stringify({ node, linked }),
     })
       .then(res => res.json())
-      .then(({ report: r, source: s }: { report: CriticReport; source: "mocked" | "openbmb" }) => {
+      .then(({ report: r, source: s }: { report: CriticReport; source: "deterministic" | "openbmb" }) => {
         if (!cancelled) { setReport(r); setSource(s); setLoading(false); }
       })
       .catch(() => {
         // Network error: run mock locally so the UI never shows broken.
         runCritic({ node, linked }).then(r => {
-          if (!cancelled) { setReport(r); setSource("mocked"); setLoading(false); }
+          if (!cancelled) { setReport(r); setSource("deterministic"); setLoading(false); }
         });
       });
     return () => { cancelled = true; };
@@ -1691,7 +1691,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span style={{ fontSize: 9, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
-          {`CRITIC · OpenBMB MiniCPM4-8B · ${source === "openbmb" ? "LIVE" : "MOCKED"}`}
+          {`CRITIC · OpenBMB MiniCPM4-8B · ${source === "openbmb" ? "LIVE" : "SOURCE: DETERMINISTIC CRITIC"}`}
         </span>
         <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           {linked.length} LINKED ARTIFACT{linked.length === 1 ? "" : "S"}
@@ -2274,7 +2274,7 @@ function ExportButton({ nodes, edges }: { nodes: NodeData[]; edges: { from: numb
           perNodeReports.set(node.id, { report, source });
         } catch {
           const report = await runCritic({ node, linked });
-          perNodeReports.set(node.id, { report, source: "mocked" });
+          perNodeReports.set(node.id, { report, source: "deterministic" });
         }
       })
     );

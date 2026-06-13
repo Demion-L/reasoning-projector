@@ -1,7 +1,7 @@
 // ─── API · POST /api/critic ────────────────────────────────────────────────────
 //
 // Request:  { node: CriticNode, linked: CriticNode[] }
-// Response: { report: CriticReport, source: "mocked" | "openbmb" }
+// Response: { report: CriticReport, source: "deterministic" | "openbmb" }
 //
 // Provider resolution order (first match wins):
 //   1. OPENBMB_API_KEY  → OpenBMB's own API
@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
     try {
       const report = await runCritic(input, { provider });
       return NextResponse.json({ report, source: "openbmb" });
-    } catch {
-      // Provider failed — fall through to mock.
+    } catch(err) {
+      console.error("[critic] provider failed", err);
     }
   }
 
   const report = await runCritic(input);
-  return NextResponse.json({ report, source: "mocked" });
+  return NextResponse.json({ report, source: "deterministic" });
 }
