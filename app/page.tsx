@@ -1177,7 +1177,8 @@ export default function MemoryReplay() {
                   linked={getLinkedNodes(selectedNode, activeNodes, activeEdges)}
                 />
               )}
-              <div style={{ textAlign: "right", marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                <ExportButton nodes={activeNodes} edges={activeEdges} />
                 <button
                   style={{ ...s.smBtn, color: C.cyan, borderColor: C.cyanDim, opacity: 0.85 }}
                   onClick={() => { setPhase("ingest"); setActiveNodes([]); setSelectedNode(null); setPanelOpen(false); }}
@@ -1818,6 +1819,206 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
         </span>
       </div>
     </div>
+  );
+}
+
+// ─── EXPORT AUDIT REPORT ─────────────────────────────────────────────────────
+
+function buildAuditMarkdown(
+  nodes: NodeData[],
+  edges: { from: number; to: number }[],
+  globalSummary: GlobalCriticSummary,
+  perNodeReports: Map<string, { report: CriticReport; source: string }>,
+  timestamp: string,
+): string {
+  const summary = computeSummary(nodes);
+  const confPct = Math.round(globalSummary.overallConfidence * 100);
+  const lines: string[] = [];
+
+  lines.push("# REASONING PROJECTOR — AUDIT REPORT");
+  lines.push("");
+  lines.push(`> Generated: ${timestamp}`);
+  lines.push("> Tool: Reasoning Projector v0.1.0");
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+
+  // 1. Dataset Summary
+  lines.push("## 1. Dataset Summary");
+  lines.push("");
+  lines.push("| Metric | Value |");
+  lines.push("|--------|-------|");
+  lines.push(`| Artifacts | ${summary.artifacts} |`);
+  lines.push(`| Signals (Edges) | ${summary.signals} |`);
+  lines.push(`| Decisions | ${summary.decisions} |`);
+  lines.push(`| Debt Markers | ${summary.debt} |`);
+  lines.push("");
+
+  // 2. Global Critic Summary
+  lines.push("## 2. Global Critic Summary");
+  lines.push("");
+  lines.push(`**Overall Confidence:** ${confPct}%`);
+  lines.push("");
+
+  // 3. Key Findings
+  lines.push("## 3. Key Findings");
+  lines.push("");
+  if (globalSummary.keyFindings.length > 0) {
+    globalSummary.keyFindings.forEach(f => lines.push(`- ${f}`));
+  } else {
+    lines.push("*No systemic gaps detected.*");
+  }
+  lines.push("");
+
+  // 4. Recommendations
+  lines.push("## 4. Recommendations");
+  lines.push("");
+  if (globalSummary.recommendations.length > 0) {
+    globalSummary.recommendations.forEach(r => lines.push(`- ${r}`));
+  } else {
+    lines.push("*Reasoning record is well documented.*");
+  }
+  lines.push("");
+
+  // 5. Highest Risk Artifacts
+  lines.push("## 5. Highest Risk Artifacts");
+  lines.push("");
+  if (globalSummary.highRiskArtifacts.length > 0) {
+    globalSummary.highRiskArtifacts.forEach(id => lines.push(`- \`${id}\``));
+  } else {
+    lines.push("*None detected.*");
+  }
+  lines.push("");
+
+  // 6. Per-node AI Critic Reports
+  lines.push("## 6. Per-Node AI Critic Reports");
+  lines.push("");
+
+  nodes.forEach(node => {
+    lines.push(`### ${node.id}`);
+    lines.push("");
+    lines.push("| Field | Value |");
+    lines.push("|-------|-------|");
+    lines.push(`| Tag | \`${node.tag}\` |`);
+    lines.push(`| Author | ${node.who} |`);
+    lines.push(`| Date | ${node.when} |`);
+    lines.push("");
+    lines.push(`**Description:** ${node.what}`);
+    lines.push("");
+    if (node.signals.length > 0) {
+      lines.push(`**Signals:** ${node.signals.map(s => `\`${s}\``).join(", ")}`);
+      lines.push("");
+    }
+    if (node.alts.length > 0) {
+      lines.push("**Rejected Alternatives:**");
+      node.alts.forEach(a => lines.push(`- ${a}`));
+      lines.push("");
+    }
+    if (node.lost) {
+      lines.push(`**Reasoning Debt:** ${node.lost}`);
+      lines.push("");
+    }
+
+    const entry = perNodeReports.get(node.id);
+    if (entry) {
+      const { report, source } = entry;
+      const confNodePct = Math.round(report.confidence * 100);
+      lines.push("**AI Critic Analysis:**");
+      lines.push("");
+      if (report.missingContext.length > 0) {
+        lines.push("*Missing Context:*");
+        report.missingContext.forEach(i => lines.push(`- ${i}`));
+        lines.push("");
+      }
+      if (report.weakAssumptions.length > 0) {
+        lines.push("*Weak Assumptions:*");
+        report.weakAssumptions.forEach(i => lines.push(`- ${i}`));
+        lines.push("");
+      }
+      lines.push(`*Debt Risk:* **${report.debtRisk}**`);
+      lines.push("");
+      if (report.suggestedArtifacts.length > 0) {
+        lines.push("*Suggested Artifacts:*");
+        report.suggestedArtifacts.forEach(i => lines.push(`- ${i}`));
+        lines.push("");
+      }
+      lines.push(`*Confidence:* ${confNodePct}%`);
+      lines.push(`*Source:* ${source}`);
+    }
+
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  });
+
+  lines.push("");
+  lines.push("*Generated by Reasoning Projector v0.1.0 — Decision Intelligence System*");
+  return lines.join("\n");
+}
+
+function ExportButton({ nodes, edges }: { nodes: NodeData[]; edges: { from: number; to: number }[] }) {
+  const [exporting, setExporting] = useState(false);
+  const [done,      setDone]      = useState(false);
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setDone(false);
+
+    const globalSummary = buildGlobalSummary(nodes);
+    const perNodeReports = new Map<string, { report: CriticReport; source: string }>();
+
+    await Promise.all(
+      nodes.map(async (node, nodeIdx) => {
+        const linked = getLinkedNodes(nodeIdx, nodes, edges);
+        try {
+          const res = await fetch("/api/critic", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ node, linked }),
+          });
+          const { report, source } = await res.json() as { report: CriticReport; source: string };
+          perNodeReports.set(node.id, { report, source });
+        } catch {
+          const report = await runCritic({ node, linked });
+          perNodeReports.set(node.id, { report, source: "mocked" });
+        }
+      })
+    );
+
+    const now = new Date();
+    const timestamp = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+    const markdown = buildAuditMarkdown(nodes, edges, globalSummary, perNodeReports, timestamp);
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "reasoning-audit-report.md";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setExporting(false);
+    setDone(true);
+    setTimeout(() => setDone(false), 2500);
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={exporting}
+      style={{
+        ...s.smBtn,
+        color:       done ? C.green : exporting ? C.textDim : C.cyan,
+        borderColor: done ? C.green : exporting ? C.border  : C.cyanDim,
+        opacity: exporting ? 0.65 : 1,
+        cursor:  exporting ? "default" : "pointer",
+      }}
+    >
+      {done ? "✓ EXPORTED" : exporting ? "GENERATING…" : "↓ EXPORT REPORT"}
+    </button>
   );
 }
 
