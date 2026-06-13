@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import demoNodesJson from "@/src/data/demo/nodes.json";
-import { runCritic, buildGlobalSummary, type CriticReport, type GlobalCriticSummary } from "@/src/lib/critic";
+import {
+  runCritic,
+  buildGlobalSummary,
+  buildExecutiveSummary,
+  buildRemediationPlan,
+  type CriticReport,
+  type GlobalCriticSummary,
+  type ExecutiveSummary,
+  type RemediationItem,
+} from "@/src/lib/critic";
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
@@ -1155,6 +1164,7 @@ export default function MemoryReplay() {
                   else            { setPanelOpen(false); }
                 }}
               />
+              <DatasetAnalysis nodes={activeNodes} />
               <GlobalCriticSummary nodes={activeNodes} />
               {panelOpen && selectedNode !== null && (
                 <DetailPanel node={activeNodes[selectedNode]} onClose={() => setPanelOpen(false)} />
@@ -1822,6 +1832,257 @@ function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
   );
 }
 
+// ─── DATASET ANALYSIS (wraps Executive Summary + Remediation Plan) ───────────
+
+function DatasetAnalysis({ nodes }: { nodes: NodeData[] }) {
+  const idKey = nodes.map(n => n.id).join(",");
+  const globalSummary = useMemo(() => buildGlobalSummary(nodes), [idKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const exec  = useMemo(() => buildExecutiveSummary(globalSummary), [idKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const plan  = useMemo(() => buildRemediationPlan(globalSummary),  [idKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <ExecutiveSummaryPanel summary={exec} />
+      <RemediationPlanPanel  items={plan} />
+    </>
+  );
+}
+
+// ─── EXECUTIVE SUMMARY PANEL ─────────────────────────────────────────────────
+
+function ExecutiveSummaryPanel({ summary }: { summary: ExecutiveSummary }) {
+  const statusColor =
+    summary.status === "CRITICAL" ? C.red :
+    summary.status === "DEGRADED" ? C.amber : C.green;
+
+  const confColor =
+    summary.confidencePct >= 70 ? C.green :
+    summary.confidencePct >= 45 ? C.amber : C.red;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      border: `0.5px solid ${C.cyanDim}`,
+      background: "rgba(1,5,11,0.95)",
+      position: "relative",
+      boxShadow: `0 0 32px rgba(79,195,247,0.07), inset 0 0 40px rgba(2,10,20,0.8)`,
+    }}>
+      {/* ── HEADER ── */}
+      <div style={{
+        padding: "9px 14px",
+        borderBottom: `0.5px solid ${C.cyanDim}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(8,22,38,0.6)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{
+            width: 5, height: 5, borderRadius: "50%",
+            background: C.cyan,
+            boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
+          }} />
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.32em", color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}` }}>
+            EXECUTIVE SUMMARY
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            padding: "2px 9px",
+            border: `0.5px solid ${statusColor}`,
+            background: `${statusColor}18`,
+            boxShadow: `0 0 10px ${statusColor}22`,
+          }}>
+            <span style={{ fontSize: 9, color: statusColor, letterSpacing: "0.24em", fontWeight: 600 }}>
+              {summary.status}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "16px 18px", position: "relative" }}>
+        <Brackets size={11} color="rgba(15,55,90,0.45)" />
+
+        {/* Confidence bar */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{ flex: 1, height: "2px", background: C.border }}>
+              <div style={{
+                height: "2px", width: `${summary.confidencePct}%`,
+                background: confColor,
+                boxShadow: `0 0 8px ${confColor}`,
+                transition: "width 0.5s",
+              }} />
+            </div>
+            <span style={{ fontSize: 13, color: confColor, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
+              {summary.confidencePct}%
+            </span>
+          </div>
+          <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.2em" }}>DOCUMENTATION CONFIDENCE</div>
+        </div>
+
+        {/* Headline */}
+        <div style={{
+          fontSize: 13, color: statusColor, letterSpacing: "0.04em", lineHeight: 1.55,
+          marginBottom: 12, fontWeight: 500,
+        }}>
+          {summary.headline}
+        </div>
+
+        {/* Body sentences */}
+        {summary.body.map((sentence, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 5 }}>
+            <span style={{ color: C.cyanDim, fontSize: 12, lineHeight: 1.6, flexShrink: 0 }}>›</span>
+            <span style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{sentence}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{
+        padding: "9px 16px",
+        borderTop: `0.5px solid rgba(15,55,90,0.5)`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
+          deterministic · dataset-level · no LLM
+        </span>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
+          RISK · <span style={{ color: statusColor }}>{summary.riskLevel}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── REMEDIATION PLAN PANEL ───────────────────────────────────────────────────
+
+function RemediationPlanPanel({ items }: { items: RemediationItem[] }) {
+  const priorityColor: Record<RemediationItem["priority"], string> = {
+    P1: C.red,
+    P2: C.amber,
+    P3: C.textDim,
+  };
+  const effortLabel: Record<RemediationItem["effort"], string> = {
+    HIGH: "HIGH EFFORT",
+    MEDIUM: "MED EFFORT",
+    LOW: "LOW EFFORT",
+  };
+
+  const overallEffort = items.some(i => i.priority === "P1") ? "HIGH" :
+                        items.some(i => i.priority === "P2") ? "MEDIUM" : "LOW";
+  const effortColor = overallEffort === "HIGH" ? C.red : overallEffort === "MEDIUM" ? C.amber : C.green;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      border: `0.5px solid ${C.cyanDim}`,
+      background: "rgba(1,5,11,0.95)",
+      position: "relative",
+      boxShadow: `0 0 32px rgba(79,195,247,0.07), inset 0 0 40px rgba(2,10,20,0.8)`,
+    }}>
+      {/* ── HEADER ── */}
+      <div style={{
+        padding: "9px 14px",
+        borderBottom: `0.5px solid ${C.cyanDim}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(8,22,38,0.6)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{
+            width: 5, height: 5, borderRadius: "50%",
+            background: C.cyan,
+            boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
+          }} />
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.32em", color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}` }}>
+            REMEDIATION PLAN
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.18em" }}>{items.length} ACTION{items.length !== 1 ? "S" : ""}</span>
+          <div style={{ width: "0.5px", height: 10, background: C.border }} />
+          <span style={{ fontSize: 9, color: effortColor, letterSpacing: "0.18em" }}>EST. EFFORT: {overallEffort}</span>
+        </div>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "16px 18px", position: "relative" }}>
+        <Brackets size={11} color="rgba(15,55,90,0.45)" />
+
+        {items.length === 0 ? (
+          <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic" }}>
+            No remediation required — reasoning record is complete.
+          </div>
+        ) : (
+          items.map((item, i) => {
+            const pColor = priorityColor[item.priority];
+            return (
+              <div key={i} style={{
+                marginBottom: i < items.length - 1 ? 14 : 0,
+                paddingBottom: i < items.length - 1 ? 14 : 0,
+                borderBottom: i < items.length - 1 ? `0.5px solid rgba(15,55,90,0.35)` : "none",
+              }}>
+                {/* Priority + effort badge row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <div style={{
+                    padding: "1px 7px",
+                    border: `0.5px solid ${pColor}`,
+                    background: `${pColor}18`,
+                    boxShadow: `0 0 8px ${pColor}1a`,
+                  }}>
+                    <span style={{ fontSize: 9, color: pColor, letterSpacing: "0.24em", fontWeight: 700 }}>
+                      {item.priority}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.16em" }}>
+                    {effortLabel[item.effort]}
+                  </span>
+                </div>
+
+                {/* Action */}
+                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 4 }}>
+                  {item.action}
+                </div>
+
+                {/* Rationale */}
+                <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.55, letterSpacing: "0.02em", marginBottom: item.affected.length > 0 ? 6 : 0 }}>
+                  {item.rationale}
+                </div>
+
+                {/* Affected artifact chips */}
+                {item.affected.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {item.affected.map(id => (
+                      <span key={id} style={{
+                        fontSize: 11, color: C.cyanDim, letterSpacing: "0.06em",
+                        padding: "1px 7px",
+                        border: `0.5px solid ${C.cyanDim}`,
+                        background: "rgba(79,195,247,0.04)",
+                      }}>{id}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{
+        padding: "9px 16px",
+        borderTop: `0.5px solid rgba(15,55,90,0.5)`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
+          deterministic · derived from findings · no LLM
+        </span>
+        <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
+          {items.filter(i => i.priority === "P1").length} P1 · {items.filter(i => i.priority === "P2").length} P2 · {items.filter(i => i.priority === "P3").length} P3
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ─── EXPORT AUDIT REPORT ─────────────────────────────────────────────────────
 
 function buildAuditMarkdown(
@@ -1833,6 +2094,8 @@ function buildAuditMarkdown(
 ): string {
   const summary = computeSummary(nodes);
   const confPct = Math.round(globalSummary.overallConfidence * 100);
+  const exec = buildExecutiveSummary(globalSummary);
+  const plan = buildRemediationPlan(globalSummary);
   const lines: string[] = [];
 
   lines.push("# REASONING PROJECTOR — AUDIT REPORT");
@@ -1854,14 +2117,26 @@ function buildAuditMarkdown(
   lines.push(`| Debt Markers | ${summary.debt} |`);
   lines.push("");
 
-  // 2. Global Critic Summary
-  lines.push("## 2. Global Critic Summary");
+  // 2. Executive Summary
+  lines.push("## 2. Executive Summary");
+  lines.push("");
+  lines.push(`**Status:** ${exec.status}  `);
+  lines.push(`**Risk Level:** ${exec.riskLevel}  `);
+  lines.push(`**Documentation Confidence:** ${exec.confidencePct}%`);
+  lines.push("");
+  lines.push(`> ${exec.headline}`);
+  lines.push("");
+  exec.body.forEach(s => lines.push(`- ${s}`));
+  lines.push("");
+
+  // 3. Global Critic Summary
+  lines.push("## 3. Global Critic Summary");
   lines.push("");
   lines.push(`**Overall Confidence:** ${confPct}%`);
   lines.push("");
 
-  // 3. Key Findings
-  lines.push("## 3. Key Findings");
+  // 4. Key Findings
+  lines.push("## 4. Key Findings");
   lines.push("");
   if (globalSummary.keyFindings.length > 0) {
     globalSummary.keyFindings.forEach(f => lines.push(`- ${f}`));
@@ -1870,8 +2145,8 @@ function buildAuditMarkdown(
   }
   lines.push("");
 
-  // 4. Recommendations
-  lines.push("## 4. Recommendations");
+  // 5. Recommendations
+  lines.push("## 5. Recommendations");
   lines.push("");
   if (globalSummary.recommendations.length > 0) {
     globalSummary.recommendations.forEach(r => lines.push(`- ${r}`));
@@ -1880,8 +2155,26 @@ function buildAuditMarkdown(
   }
   lines.push("");
 
-  // 5. Highest Risk Artifacts
-  lines.push("## 5. Highest Risk Artifacts");
+  // 6. Remediation Plan
+  lines.push("## 6. Remediation Plan");
+  lines.push("");
+  if (plan.length === 0) {
+    lines.push("*No remediation required — reasoning record is complete.*");
+  } else {
+    plan.forEach(item => {
+      lines.push(`### [${item.priority}] ${item.action}`);
+      lines.push("");
+      lines.push(`**Effort:** ${item.effort}  `);
+      lines.push(`**Rationale:** ${item.rationale}`);
+      if (item.affected.length > 0) {
+        lines.push(`**Affected:** ${item.affected.map(id => `\`${id}\``).join(", ")}`);
+      }
+      lines.push("");
+    });
+  }
+
+  // 7. Highest Risk Artifacts
+  lines.push("## 7. Highest Risk Artifacts");
   lines.push("");
   if (globalSummary.highRiskArtifacts.length > 0) {
     globalSummary.highRiskArtifacts.forEach(id => lines.push(`- \`${id}\``));
@@ -1890,8 +2183,8 @@ function buildAuditMarkdown(
   }
   lines.push("");
 
-  // 6. Per-node AI Critic Reports
-  lines.push("## 6. Per-Node AI Critic Reports");
+  // 8. Per-node AI Critic Reports
+  lines.push("## 8. Per-Node AI Critic Reports");
   lines.push("");
 
   nodes.forEach(node => {

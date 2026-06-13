@@ -4,6 +4,8 @@ export { buildCriticPrompt } from "./buildCriticPrompt";
 export { parseCriticResponse } from "./parseCriticResponse";
 export { runCritic, defaultCriticProvider } from "./runCritic";
 export { buildGlobalSummary } from "./buildGlobalSummary";
+export { buildExecutiveSummary } from "./buildExecutiveSummary";
+export { buildRemediationPlan } from "./buildRemediationPlan";
 export type {
   CriticNode,
   CriticInput,
@@ -11,4 +13,9 @@ export type {
   CriticProvider,
   DebtRisk,
   GlobalCriticSummary,
+  HealthStatus,
+  ExecutiveRiskLevel,
+  ExecutiveSummary,
+  RemediationPriority,
+  RemediationItem,
 } from "./types";

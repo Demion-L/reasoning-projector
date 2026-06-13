@@ -45,6 +45,36 @@ export interface CriticReport {
  */
 export type CriticProvider = (prompt: string) => Promise<string>;
 
+// ── Executive Summary ────────────────────────────────────────────────────────
+
+export type HealthStatus = "NOMINAL" | "DEGRADED" | "CRITICAL";
+export type ExecutiveRiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+/** Top-level reasoning-health verdict for use in reports and the UI header. */
+export interface ExecutiveSummary {
+  status: HealthStatus;
+  riskLevel: ExecutiveRiskLevel;
+  headline: string;
+  /** Ordered narrative sentences — render as a bullet list or paragraphs. */
+  body: string[];
+  confidencePct: number;
+}
+
+// ── Remediation Plan ─────────────────────────────────────────────────────────
+
+export type RemediationPriority = "P1" | "P2" | "P3";
+
+export interface RemediationItem {
+  priority: RemediationPriority;
+  /** The actionable step to take. */
+  action: string;
+  /** Why this item matters — one sentence derived from findings. */
+  rationale: string;
+  /** Artifact IDs this item directly addresses (may be empty for process items). */
+  affected: string[];
+  effort: "LOW" | "MEDIUM" | "HIGH";
+}
+
 /**
  * Project-level reasoning-health verdict for an entire loaded dataset.
  *
