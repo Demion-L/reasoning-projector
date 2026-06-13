@@ -422,7 +422,7 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
 
   return (
     <div data-testid="rp-left-panel" style={{
-      width: 160, flexShrink: 0,
+      width: 180, flexShrink: 0,
       margin: "10px",
       borderRadius: 6,
       border: "1px solid rgba(255,255,255,0.18)",
@@ -448,35 +448,48 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
       <TR label="CPU" val={`${cpu}%`} color={C.textDim} />
       <TR label="MEM" val={`${mem}%`} color={C.textDim} />
       <HR />
-      <Sect>CRITIC MODEL</Sect>
-      <TR label="PROVIDER" val="OpenBMB"   color={C.cyan} />
-      <TR label="ENGINE"   val="MiniCPM-o" color={C.textBright} />
-      <TR label="MODE"     val="AgentCPM"  color={C.text} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: C.text, letterSpacing: "0.08em" }}>STATUS</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.green, boxShadow: `0 0 5px ${C.green}` }} />
-          <span style={{ fontSize: 11, color: C.green, letterSpacing: "0.1em" }}>READY</span>
+      <Sect>AI MODEL</Sect>
+      {/* Model info card — stacked so text values never overflow the panel width */}
+      <div style={{
+        border: `0.5px solid rgba(79,195,247,0.22)`,
+        background: "rgba(4,14,28,0.55)",
+        padding: "8px 10px",
+        display: "flex", flexDirection: "column", gap: 6,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>PROVIDER</span>
+          <span style={{ fontSize: 11, color: C.cyan, letterSpacing: "0.04em" }}>OpenBMB</span>
+        </div>
+        <div style={{ borderTop: `0.5px solid rgba(15,55,90,0.4)`, paddingTop: 5 }}>
+          <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em", marginBottom: 2 }}>ENGINE</div>
+          <div style={{ fontSize: 12, color: C.textBright, letterSpacing: "0.04em" }}>MiniCPM4-8B</div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `0.5px solid rgba(15,55,90,0.4)`, paddingTop: 5 }}>
+          <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>AgentCPM</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 4, height: 4, borderRadius: "50%", background: C.green, boxShadow: `0 0 4px ${C.green}` }} />
+            <span style={{ fontSize: 9, color: C.green, letterSpacing: "0.1em" }}>READY</span>
+          </div>
         </div>
       </div>
       <HR />
-      <Sect>CRITIC SESSION</Sect>
+      <Sect>SESSION</Sect>
       <TR label="TOK IN"  val={tokIn  > 0 ? String(tokIn)  : "—"} color={C.textDim} />
       <TR label="TOK OUT" val={tokOut > 0 ? String(tokOut) : "—"} color={C.textDim} />
       <TR label="CALLS"   val={calls  > 0 ? String(calls)  : "—"} color={C.textDim} />
       <TR label="LATENCY" val={latMs  > 0 ? `${latMs} ms`  : "—"} color={C.textDim} />
       <TR label="CTX"     val={`${ctxPct}%`}                       color={C.textDim} />
       <HR />
-      <Sect>CRITIC ROLE</Sect>
+      <Sect>SCOPE</Sect>
       {[
-        "Find Missing Context",
-        "Find Weak Assumptions",
-        "Estimate Debt Risk",
-        "Suggest Missing Artifacts",
+        "Missing Context",
+        "Weak Assumptions",
+        "Debt Risk Level",
+        "Suggest Artifacts",
       ].map((role, i) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-          <span style={{ color: C.cyanDim, fontSize: 11, lineHeight: 1.55, flexShrink: 0 }}>›</span>
-          <span style={{ fontSize: 11, color: C.text, lineHeight: 1.55, letterSpacing: "0.02em" }}>{role}</span>
+          <span style={{ color: C.cyanDim, fontSize: 10, lineHeight: 1.55, flexShrink: 0 }}>›</span>
+          <span style={{ fontSize: 10, color: C.text, lineHeight: 1.55, letterSpacing: "0.02em" }}>{role}</span>
         </div>
       ))}
       </div>
@@ -500,7 +513,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
 
   return (
     <div data-testid="rp-right-panel" style={{
-      width: 160, flexShrink: 0,
+      width: 180, flexShrink: 0,
       margin: "10px",
       borderRadius: 6,
       border: "1px solid rgba(255,255,255,0.18)",
@@ -569,14 +582,14 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
 // ─── PANEL HELPERS ────────────────────────────────────────────────────────────
 
 function Sect({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 10, color: C.text, letterSpacing: "0.28em", textTransform: "uppercase" as const }}>{children}</div>;
+  return <div style={{ fontSize: 10, color: C.text, letterSpacing: "0.14em", textTransform: "uppercase" as const }}>{children}</div>;
 }
 function HR() { return <div style={{ height: "0.5px", background: C.border }} />; }
 function TR({ label, val, color, glow }: { label: string; val: string; color: string; glow?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-      <span style={{ fontSize: 11, color: C.text, letterSpacing: "0.08em" }}>{label}</span>
-      <span style={{ fontSize: 13, color, fontVariantNumeric: "tabular-nums", textShadow: glow ? `0 0 8px ${color}` : undefined }}>{val}</span>
+      <span style={{ fontSize: 10, color: C.text, letterSpacing: "0.08em" }}>{label}</span>
+      <span style={{ fontSize: 12, color, fontVariantNumeric: "tabular-nums", textShadow: glow ? `0 0 8px ${color}` : undefined }}>{val}</span>
     </div>
   );
 }

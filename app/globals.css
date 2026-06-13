@@ -44,3 +44,30 @@ body {
 }
 
 .rp-corner { animation: bracket-pulse 2.2s ease-in-out infinite; }
+
+/* ── Custom scrollbars ───────────────────────────────────────────────────── */
+
+/* WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(79, 195, 247, 0.28);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 195, 247, 0.55);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 195, 247, 0.28) transparent;
+}
