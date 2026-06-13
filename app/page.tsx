@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import demoNodesJson from "@/src/data/demo/nodes.json";
+import { runCritic, buildGlobalSummary, type CriticReport, type GlobalCriticSummary } from "@/src/lib/critic";
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,16 @@ function findPrimaryDecision(nodes: NodeData[]): number | null {
   return decisions[0].i;
 }
 
+// Direct neighbours of a node (signal-linked in either direction).
+function getLinkedNodes(nodeIdx: number, nodes: NodeData[], edges: { from: number; to: number }[]): NodeData[] {
+  const linked = new Set<number>();
+  for (const e of edges) {
+    if (e.from === nodeIdx) linked.add(e.to);
+    if (e.to === nodeIdx)   linked.add(e.from);
+  }
+  return [...linked].map(i => nodes[i]);
+}
+
 function getConnectedIndices(nodeIdx: number, edges: { from: number; to: number }[]): Set<number> {
   const result = new Set<number>([nodeIdx]);
   const queue = [nodeIdx];
@@ -203,9 +214,9 @@ const C = {
   cyanDim:    "#1a5c7c",
   cyanGlow:   "rgba(79,195,247,0.14)",
   cyanGlow2:  "rgba(79,195,247,0.06)",
-  text:       "#b0ccd8",
-  textDim:    "#3a5f72",
-  textBright: "#e4f2f8",
+  text:       "#cfe3ec",
+  textDim:    "#80a6ba",
+  textBright: "#f2fafe",
   amber:      "#ffb74d",
   amberDim:   "rgba(255,183,77,0.1)",
   green:      "#66bb6a",
@@ -266,13 +277,30 @@ function GridOverlay() {
   );
 }
 
+// ─── NEBULA GLOW (backdrop for glass panels) ──────────────────────────────────
+
+function NebulaGlow() {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+      background: [
+        "radial-gradient(720px 560px at 8% 4%, rgba(64,168,224,0.42), transparent 66%)",
+        "radial-gradient(820px 660px at 92% 96%, rgba(34,158,172,0.34), transparent 68%)",
+        "radial-gradient(1000px 800px at 50% 46%, rgba(40,96,150,0.26), transparent 72%)",
+      ].join(","),
+    }} />
+  );
+}
+
 // ─── MET CLOCK ────────────────────────────────────────────────────────────────
 
 function useHelsinkiTime() {
   const fmt = () =>
     new Date().toLocaleTimeString("fi-FI", { timeZone: "Europe/Helsinki", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-  const [time, setTime] = useState(fmt);
-  useEffect(() => { const id = setInterval(() => setTime(fmt()), 1000); return () => clearInterval(id); }, []);
+  // Start empty so server and first client render match (avoids hydration mismatch),
+  // then fill in on the client after mount.
+  const [time, setTime] = useState("--:--:--");
+  useEffect(() => { setTime(fmt()); const id = setInterval(() => setTime(fmt()), 1000); return () => clearInterval(id); }, []);
   return time;
 }
 
@@ -287,9 +315,14 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
     <div style={{
       position: "relative", zIndex: 20, flexShrink: 0,
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 20px", height: 50,
-      borderBottom: `0.5px solid ${C.border}`,
-      background: `linear-gradient(180deg, rgba(4,14,24,0.98) 0%, rgba(2,4,8,0.92) 100%)`,
+      padding: "0 24px", height: 50,
+      margin: "10px 10px 0 10px",
+      borderRadius: 6,
+      border: "1px solid rgba(255,255,255,0.18)",
+      background: "linear-gradient(135deg, rgba(255,255,255,0.11), rgba(120,170,210,0.04) 55%, rgba(255,255,255,0.02))",
+      backdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      WebkitBackdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
       {/* Logo + name */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -317,10 +350,10 @@ function TopHUD({ phase, debtCount }: { phase: string; debtCount: number }) {
           ))}
         </div>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.textBright, letterSpacing: "0.22em" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.textBright, letterSpacing: "0.22em", textShadow: `0 0 10px ${C.cyanGlow}` }}>
             REASONING PROJECTOR
           </div>
-          <div style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.22em", marginTop: 1 }}>
+          <div style={{ fontSize: 7, color: C.text, letterSpacing: "0.22em", marginTop: 1 }}>
             DECISION INTELLIGENCE SYSTEM · v0.1.0
           </div>
         </div>
@@ -388,11 +421,21 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
   return (
     <div style={{
       width: 160, flexShrink: 0,
-      borderRight: `0.5px solid ${C.border}`,
-      padding: "14px 13px",
-      display: "flex", flexDirection: "column", gap: 11,
-      overflowY: "auto", background: `rgba(4,12,20,0.6)`,
+      margin: "10px",
+      borderRadius: 6,
+      border: "1px solid rgba(255,255,255,0.18)",
+      position: "relative",
+      overflow: "hidden",
+      background: "linear-gradient(135deg, rgba(255,255,255,0.11), rgba(120,170,210,0.04) 55%, rgba(255,255,255,0.02))",
+      backdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      WebkitBackdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
+      <div style={{
+        height: "100%", overflowY: "auto",
+        padding: "14px 13px",
+        display: "flex", flexDirection: "column", gap: 11,
+      }}>
       <Sect>TRACE TELEMETRY</Sect>
       <TR label="NODES" val={nodes.length > 0 ? String(nodes.length) : "—"} color={C.cyan} />
       <TR label="EDGES" val={nodes.length > 0 ? String(edgeCount)     : "—"} color={C.cyan} />
@@ -434,6 +477,7 @@ function LeftTelemetry({ nodes, edgeCount, depth, debtCount }: {
           <span style={{ fontSize: 9, color: C.text, lineHeight: 1.55, letterSpacing: "0.02em" }}>{role}</span>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -449,16 +493,27 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
   const [hovered, setHovered] = useState<number | null>(null);
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 550); return () => clearInterval(id); }, []);
   const WL = 16;
-  const wave = Array.from({ length: WL }, (_, i) => Math.abs(Math.sin((i - tick) * 0.55)) * 24 + 3);
+  // Round to whole pixels so SSR and client serialize identically (avoids hydration mismatch).
+  const wave = Array.from({ length: WL }, (_, i) => Math.round(Math.abs(Math.sin((i - tick) * 0.55)) * 24 + 3));
 
   return (
     <div style={{
       width: 160, flexShrink: 0,
-      borderLeft: `0.5px solid ${C.border}`,
-      padding: "14px 13px",
-      display: "flex", flexDirection: "column", gap: 11,
-      overflowY: "auto", background: `rgba(4,12,20,0.6)`,
+      margin: "10px",
+      borderRadius: 6,
+      border: "1px solid rgba(255,255,255,0.18)",
+      position: "relative",
+      overflow: "hidden",
+      background: "linear-gradient(135deg, rgba(255,255,255,0.11), rgba(120,170,210,0.04) 55%, rgba(255,255,255,0.02))",
+      backdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      WebkitBackdropFilter: "blur(34px) saturate(185%) brightness(1.08)",
+      boxShadow: "0 10px 36px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 0 1px rgba(255,255,255,0.04)",
     }}>
+      <div style={{
+        height: "100%", overflowY: "auto",
+        padding: "14px 13px",
+        display: "flex", flexDirection: "column", gap: 11,
+      }}>
       <Sect>SYSTEMS</Sect>
       <SR label="GRAPH ENGINE"   ok />
       <SR label="REPLAY ENGINE"  ok />
@@ -504,6 +559,7 @@ function RightSystem({ nodes, selectedNode, onSelect }: {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -538,16 +594,20 @@ function SR({ label, ok, warn }: { label: string; ok?: boolean; warn?: boolean }
 
 // ─── CORNER BRACKETS ─────────────────────────────────────────────────────────
 
-function Brackets({ size = 16, color = C.cyanDim }: { size?: number; color?: string }) {
+function Brackets({ size = 16, color = C.cyan, inset = 0, thickness = 1.5, pulse = false }: {
+  size?: number; color?: string; inset?: number; thickness?: number; pulse?: boolean;
+}) {
+  const b = `${thickness}px solid ${color}`;
   return (
     <>
       {[
-        { top: 0,    left: 0,    borderTop: `1px solid ${color}`, borderLeft: `1px solid ${color}` },
-        { top: 0,    right: 0,   borderTop: `1px solid ${color}`, borderRight: `1px solid ${color}` },
-        { bottom: 0, left: 0,    borderBottom: `1px solid ${color}`, borderLeft: `1px solid ${color}` },
-        { bottom: 0, right: 0,   borderBottom: `1px solid ${color}`, borderRight: `1px solid ${color}` },
+        { top: inset,    left: inset,    borderTop: b, borderLeft: b },
+        { top: inset,    right: inset,   borderTop: b, borderRight: b },
+        { bottom: inset, left: inset,    borderBottom: b, borderLeft: b },
+        { bottom: inset, right: inset,   borderBottom: b, borderRight: b },
       ].map((st, i) => (
-        <div key={i} style={{ position: "absolute", width: size, height: size, ...st }} />
+        <div key={i} className={pulse ? "rp-corner" : undefined}
+          style={{ position: "absolute", width: size, height: size, color, pointerEvents: "none", zIndex: 5, ...st }} />
       ))}
     </>
   );
@@ -966,6 +1026,7 @@ export default function MemoryReplay() {
       overflow: "hidden",
       position: "relative",
     }}>
+      <NebulaGlow />
       <StarField />
       <GridOverlay />
       <TopHUD phase={phase} debtCount={debtCount} />
@@ -976,6 +1037,13 @@ export default function MemoryReplay() {
         {/* ── CENTER ── */}
         <div style={{
           flex: 1, minWidth: 0,
+          margin: "10px 0",
+          borderRadius: 6,
+          border: "1px solid rgba(255,255,255,0.18)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(120,170,210,0.02) 55%, rgba(255,255,255,0.015))",
+          backdropFilter: "blur(16px) saturate(140%) brightness(1.04)",
+          WebkitBackdropFilter: "blur(16px) saturate(140%) brightness(1.04)",
+          boxShadow: "0 10px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18)",
           display: "flex", flexDirection: "column",
           alignItems: "center",
           justifyContent: phase === "graph" ? "flex-start" : "center",
@@ -986,7 +1054,6 @@ export default function MemoryReplay() {
           overflowY: "auto",
         }}>
           <ScanLine active={phase === "replay"} />
-          <Brackets size={20} />
 
           {/* Targeting rings — intro / replay only */}
           {(phase === "intro" || phase === "replay") && (
@@ -1067,6 +1134,7 @@ export default function MemoryReplay() {
                   else            { setPanelOpen(false); }
                 }}
               />
+              <GlobalCriticSummary nodes={activeNodes} />
               {panelOpen && selectedNode !== null && (
                 <DetailPanel node={activeNodes[selectedNode]} onClose={() => setPanelOpen(false)} />
               )}
@@ -1080,6 +1148,13 @@ export default function MemoryReplay() {
                 <div style={{ marginTop: 28, textAlign: "center", fontSize: 9, color: C.textDim, letterSpacing: "0.16em" }}>
                   click a node to open reconstruction
                 </div>
+              )}
+              {selectedNode !== null && (
+                <AICriticReport
+                  key={selectedNode}
+                  node={activeNodes[selectedNode]}
+                  linked={getLinkedNodes(selectedNode, activeNodes, activeEdges)}
+                />
               )}
               <div style={{ textAlign: "right", marginTop: 12 }}>
                 <button
@@ -1428,6 +1503,299 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── AI CRITIC REPORT ─────────────────────────────────────────────────────────
+
+function CriticBlock({ label, items, empty }: { label: string; items: string[]; empty: string }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>{label}</div>
+      {items.length > 0 ? (
+        items.map((it, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 4 }}>
+            <span style={{ color: C.cyanDim, fontSize: 10, lineHeight: 1.6, flexShrink: 0 }}>›</span>
+            <span style={{ fontSize: 11, color: C.text, lineHeight: 1.6 }}>{it}</span>
+          </div>
+        ))
+      ) : (
+        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.04em", fontStyle: "italic" }}>{empty}</div>
+      )}
+    </div>
+  );
+}
+
+function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }) {
+  const [report,  setReport]  = useState<CriticReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [source,  setSource]  = useState<"mocked" | "openbmb">("mocked");
+
+  // Re-run the critic whenever the selected node (or its links) change.
+  // Keyed on stable ids — `linked` is a fresh array each render, so depending on
+  // the reference would re-fire on every parent tick.
+  const linkedKey = linked.map(n => n.id).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setReport(null);
+    fetch("/api/critic", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ node, linked }),
+    })
+      .then(res => res.json())
+      .then(({ report: r, source: s }: { report: CriticReport; source: "mocked" | "openbmb" }) => {
+        if (!cancelled) { setReport(r); setSource(s); setLoading(false); }
+      })
+      .catch(() => {
+        // Network error: run mock locally so the UI never shows broken.
+        runCritic({ node, linked }).then(r => {
+          if (!cancelled) { setReport(r); setSource("mocked"); setLoading(false); }
+        });
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id, linkedKey]);
+
+  const riskColor =
+    report?.debtRisk === "HIGH"   ? C.red :
+    report?.debtRisk === "MEDIUM" ? C.amber : C.green;
+
+  const confidencePct = report ? Math.round(report.confidence * 100) : 0;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      border: `0.5px solid ${C.cyanDim}`,
+      background: "rgba(1,5,11,0.95)",
+      position: "relative",
+      boxShadow: `0 0 32px rgba(79,195,247,0.07), inset 0 0 40px rgba(2,10,20,0.8)`,
+    }}>
+      {/* ── HEADER ── */}
+      <div style={{
+        padding: "9px 14px",
+        borderBottom: `0.5px solid ${C.cyanDim}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(8,22,38,0.6)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{
+            width: 5, height: 5, borderRadius: "50%",
+            background: C.cyan,
+            boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
+          }} />
+          <span style={{
+            fontSize: 8, fontWeight: 700, letterSpacing: "0.32em",
+            color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}`,
+          }}>
+            AI CRITIC REPORT
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.12em" }}>{node.id}</span>
+          <div style={{ width: "0.5px", height: 10, background: C.border }} />
+          <span style={{
+            fontSize: 7, letterSpacing: "0.22em",
+            color: loading ? C.cyanDim : C.green,
+            transition: "color 0.4s",
+          }}>
+            {loading ? "REVIEWING..." : "COMPLETE"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "16px 18px", position: "relative", minHeight: 80 }}>
+        <Brackets size={11} color="rgba(15,55,90,0.45)" />
+
+        {loading || !report ? (
+          <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.08em" }}>
+            scanning reasoning for gaps…
+          </div>
+        ) : (
+          <>
+            <CriticBlock label="MISSING CONTEXT"    items={report.missingContext}     empty="none detected" />
+            <CriticBlock label="WEAK ASSUMPTIONS"   items={report.weakAssumptions}    empty="none detected" />
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>DEBT RISK</div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "4px 12px",
+                border: `0.5px solid ${riskColor}`,
+                background: `${riskColor}18`,
+                boxShadow: `0 0 12px ${riskColor}22`,
+              }}>
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: riskColor, boxShadow: `0 0 6px ${riskColor}` }} />
+                <span style={{ fontSize: 9, color: riskColor, letterSpacing: "0.24em", fontWeight: 600 }}>
+                  {report.debtRisk}
+                </span>
+              </div>
+            </div>
+
+            <CriticBlock label="SUGGESTED ARTIFACTS" items={report.suggestedArtifacts} empty="no additional artifacts suggested" />
+
+            <div>
+              <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>CONFIDENCE</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1, height: "2px", background: C.border, position: "relative" }}>
+                  <div style={{ height: "2px", width: `${confidencePct}%`, background: C.cyan, boxShadow: `0 0 8px ${C.cyan}`, transition: "width 0.4s" }} />
+                </div>
+                <span style={{ fontSize: 11, color: C.cyan, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
+                  {confidencePct}%
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{
+        padding: "9px 16px",
+        borderTop: `0.5px solid rgba(15,55,90,0.5)`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 7, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
+          {`CRITIC · OpenBMB MiniCPM4-8B · ${source === "openbmb" ? "LIVE" : "MOCKED"}`}
+        </span>
+        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+          {linked.length} LINKED ARTIFACT{linked.length === 1 ? "" : "S"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── GLOBAL CRITIC SUMMARY (DATASET-LEVEL) ────────────────────────────────────
+
+function GlobalStat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div style={{
+      flex: 1, minWidth: 0,
+      border: `0.5px solid ${C.border}`,
+      background: "rgba(8,22,38,0.45)",
+      padding: "10px 12px",
+    }}>
+      <div style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.2em", marginBottom: 6, whiteSpace: "nowrap" }}>{label}</div>
+      <div style={{ fontSize: 22, color, fontVariantNumeric: "tabular-nums", letterSpacing: "0.02em", lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
+function GlobalCriticSummary({ nodes }: { nodes: NodeData[] }) {
+  // Deterministic + synchronous — recompute only when the dataset identity
+  // changes (keyed on stable ids, not the fresh array reference each render).
+  const idKey = nodes.map(n => n.id).join(",");
+  const summary: GlobalCriticSummary = useMemo(
+    () => buildGlobalSummary(nodes),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [idKey],
+  );
+
+  const confidencePct = Math.round(summary.overallConfidence * 100);
+  const confColor = confidencePct >= 66 ? C.green : confidencePct >= 40 ? C.amber : C.red;
+  const debtColor = summary.totalDebtMarkers > 0 ? C.amber : C.green;
+
+  return (
+    <div style={{
+      marginTop: 20,
+      border: `0.5px solid ${C.cyanDim}`,
+      background: "rgba(1,5,11,0.95)",
+      position: "relative",
+      boxShadow: `0 0 32px rgba(79,195,247,0.07), inset 0 0 40px rgba(2,10,20,0.8)`,
+    }}>
+      {/* ── HEADER ── */}
+      <div style={{
+        padding: "9px 14px",
+        borderBottom: `0.5px solid ${C.cyanDim}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(8,22,38,0.6)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{
+            width: 5, height: 5, borderRadius: "50%",
+            background: C.cyan,
+            boxShadow: `0 0 6px ${C.cyan}, 0 0 14px ${C.cyanGlow}`,
+          }} />
+          <span style={{
+            fontSize: 8, fontWeight: 700, letterSpacing: "0.32em",
+            color: C.cyan, textShadow: `0 0 14px ${C.cyanGlow}`,
+          }}>
+            GLOBAL CRITIC SUMMARY
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.12em" }}>DATASET</span>
+          <div style={{ width: "0.5px", height: 10, background: C.border }} />
+          <span style={{ fontSize: 7, letterSpacing: "0.22em", color: C.green }}>COMPLETE</span>
+        </div>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "16px 18px", position: "relative", minHeight: 80 }}>
+        <Brackets size={11} color="rgba(15,55,90,0.45)" />
+
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <GlobalStat label="ARTIFACTS ANALYZED"     value={summary.totalArtifacts}   color={C.cyan} />
+          <GlobalStat label="DECISIONS FOUND"        value={summary.totalDecisions}   color={C.text} />
+          <GlobalStat label="REASONING DEBT MARKERS" value={summary.totalDebtMarkers} color={debtColor} />
+        </div>
+
+        {/* Highest risk artifacts */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>HIGHEST RISK ARTIFACTS</div>
+          {summary.highRiskArtifacts.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {summary.highRiskArtifacts.map((id) => (
+                <span key={id} style={{
+                  fontSize: 10, color: C.red, letterSpacing: "0.08em",
+                  padding: "3px 9px",
+                  border: `0.5px solid ${C.red}`,
+                  background: `${C.red}14`,
+                  boxShadow: `0 0 10px ${C.red}1a`,
+                  fontVariantNumeric: "tabular-nums",
+                }}>{id}</span>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 10, color: C.textDim, fontStyle: "italic" }}>none detected</div>
+          )}
+        </div>
+
+        <CriticBlock label="KEY FINDINGS"    items={summary.keyFindings}     empty="no systemic gaps detected" />
+        <CriticBlock label="RECOMMENDATIONS" items={summary.recommendations} empty="reasoning record is well documented" />
+
+        {/* Overall confidence */}
+        <div>
+          <div style={{ fontSize: 8, color: C.textDim, letterSpacing: "0.24em", marginBottom: 6 }}>OVERALL CONFIDENCE</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, height: "2px", background: C.border, position: "relative" }}>
+              <div style={{ height: "2px", width: `${confidencePct}%`, background: confColor, boxShadow: `0 0 8px ${confColor}`, transition: "width 0.4s" }} />
+            </div>
+            <span style={{ fontSize: 11, color: confColor, fontVariantNumeric: "tabular-nums", letterSpacing: "0.06em" }}>
+              {confidencePct}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{
+        padding: "9px 16px",
+        borderTop: `0.5px solid rgba(15,55,90,0.5)`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+          CRITIC · DATASET-LEVEL · deterministic
+        </span>
+        <span style={{ fontSize: 7, color: C.textDim, letterSpacing: "0.1em" }}>
+          COMPANION TO PER-NODE REPORT
+        </span>
+      </div>
     </div>
   );
 }

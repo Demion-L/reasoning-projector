@@ -26,3 +26,10 @@ body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+@keyframes bracket-pulse {
+  0%, 100% { opacity: 1;    filter: drop-shadow(0 0 3px currentColor); }
+  50%      { opacity: 0.4;  filter: drop-shadow(0 0 1px currentColor); }
+}
+
+.rp-corner { animation: bracket-pulse 2.2s ease-in-out infinite; }
