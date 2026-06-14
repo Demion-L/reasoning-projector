@@ -17,7 +17,9 @@ On HF Spaces:
     This script builds (if needed) and starts Next.js automatically.
 """
 
+import json
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -30,6 +32,7 @@ import gradio as gr
 ROOT        = os.path.dirname(os.path.abspath(__file__))
 NEXTJS_PORT = int(os.environ.get("NEXTJS_PORT", 3000))
 GRADIO_PORT = int(os.environ.get("GRADIO_PORT", 7860))
+ON_HF       = bool(os.environ.get("SPACE_ID"))
 
 def _default_nextjs_url(port: int) -> str:
     # On HF Spaces, SPACE_ID is set (e.g. "demionAlGrande/reasoning-projector-openbmb").
@@ -72,10 +75,25 @@ def _run_nextjs() -> None:
     for line in iter(proc.stdout.readline, b""):
         print("[next]", line.decode().rstrip(), flush=True)
 
+def _wait_for_port(host: str, port: int, timeout: float = 120) -> bool:
+    """Poll until something is listening on host:port, or timeout is reached."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(2)
+    return False
+
 if START_NEXTJS:
     threading.Thread(target=_run_nextjs, daemon=True).start()
-    # Give Next.js time to bind the port before Gradio renders the iframe.
-    time.sleep(6)
+    print(f"[setup] waiting for Next.js on port {NEXTJS_PORT}…", flush=True)
+    if _wait_for_port("127.0.0.1", NEXTJS_PORT, timeout=120):
+        print(f"[setup] Next.js is up on port {NEXTJS_PORT}.", flush=True)
+    else:
+        print(f"[setup] ⚠ Next.js did not start within 120 s — continuing anyway.",
+              flush=True)
 
 # ─── Gradio interface ─────────────────────────────────────────────────────────
 
@@ -120,20 +138,43 @@ _iframe_html = (
     f'</div>'
 )
 
-with gr.Blocks(
-    title="Reasoning Projector",
-    theme=gr.themes.Base(
-        primary_hue="blue",
-        neutral_hue="slate",
-        font=gr.themes.GoogleFont("IBM Plex Mono"),
-    ),
-    css="footer{display:none!important}",
-) as demo:
-
-    gr.Markdown("# 🧠 Reasoning Projector")
-    gr.Markdown(_DESCRIPTION)
-    gr.HTML(_link_html)
-    gr.HTML(_iframe_html)
+if ON_HF:
+    # On HF Spaces the iframe src can resolve back to the Gradio page (port 7860)
+    # if the proxy for port 3000 isn't ready, which causes infinite recursive
+    # embedding. Redirect the browser directly to the Next.js app instead —
+    # browsers stop redirect loops gracefully, iframe loops do not.
+    _nextjs_url_js = json.dumps(NEXTJS_URL)
+    with gr.Blocks(
+        title="Reasoning Projector",
+        css="footer{display:none!important}",
+    ) as demo:
+        gr.HTML(f"""
+        <div style="display:flex;align-items:center;justify-content:center;
+                    height:80vh;font-family:'IBM Plex Mono',monospace;
+                    background:#020408;color:#4fc3f7;">
+          <div style="text-align:center;">
+            <p style="font-size:13px;letter-spacing:.1em;">LOADING REASONING PROJECTOR…</p>
+            <p style="font-size:11px;color:#4a7a8a;margin-top:8px;">
+              <a href="{NEXTJS_URL}" style="color:#4fc3f7;">Click here if not redirected</a>
+            </p>
+          </div>
+        </div>
+        <script>window.location.replace({_nextjs_url_js});</script>
+        """)
+else:
+    with gr.Blocks(
+        title="Reasoning Projector",
+        theme=gr.themes.Base(
+            primary_hue="blue",
+            neutral_hue="slate",
+            font=gr.themes.GoogleFont("IBM Plex Mono"),
+        ),
+        css="footer{display:none!important}",
+    ) as demo:
+        gr.Markdown("# 🧠 Reasoning Projector")
+        gr.Markdown(_DESCRIPTION)
+        gr.HTML(_link_html)
+        gr.HTML(_iframe_html)
 
 # ─── Launch ───────────────────────────────────────────────────────────────────
 
