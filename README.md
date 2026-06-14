@@ -1,4 +1,5 @@
 ---
+
 title: Reasoning Projector
 emoji: 🧠
 colorFrom: indigo
@@ -6,96 +7,228 @@ colorTo: blue
 sdk: gradio
 app_file: app.py
 pinned: false
-short_description: Reconstructs why software decisions exist and detects Reasoning Debt
+short_description: Reconstruct software decisions, detect Reasoning Debt, and generate remediation plans.
+---------------------------------------------------------------------------------------------------------
+
+# 🧠 Reasoning Projector
+
+![OpenBMB](https://img.shields.io/badge/OpenBMB-Powered-blue)
+![MiniCPM4.1-8B](https://img.shields.io/badge/MiniCPM4.1--8B-AI%20Critic-green)
+![BuildSmall2026](https://img.shields.io/badge/Build%20Small-2026-orange)
+
+> Technical Debt is visible.
+> Reasoning Debt is not.
+
+Reasoning Projector is a Decision Intelligence System that reconstructs lost engineering rationale from connected artifacts such as incidents, ADRs, investigations, fixes, pull requests, and architectural decisions.
+
+Instead of asking:
+
+> What does the code do?
+
+It asks:
+
+> Why does this decision exist?
+
 ---
 
-# Reasoning Projector
+# 🚀 Build Small 2026 Submission
 
-**Reconstructs why software decisions exist — and detects Reasoning Debt.**
+### Track Tags
 
-Every engineering decision carries invisible context: *who* made the call and *why*,
-which alternatives were considered and rejected, and what rationale was never written
-down. Over time this context evaporates. Reasoning Projector makes it visible by
-replaying the signal trail from incidents → decision → ADR, and surfaces the gaps
-that no API can recover.
+* #OpenBMB
+* #Reasoning
+* #DeveloperTools
+* #KnowledgeManagement
+* #DecisionIntelligence
+* #AIEngineering
 
 ---
 
-## Running locally
+# Problem
 
-### Option A — two terminals (recommended for development)
+Engineering teams preserve code.
 
-**Terminal 1 — Next.js app:**
+They rarely preserve reasoning.
+
+Over time organizations lose:
+
+* Why a decision was made
+* Which alternatives were rejected
+* Who approved the change
+* Which incidents influenced the outcome
+* What context existed during discussions
+
+The code survives.
+
+The reasoning doesn't.
+
+This creates **Reasoning Debt**.
+
+---
+
+# Solution
+
+Reasoning Projector reconstructs decision history from engineering artifacts and identifies missing rationale before it becomes organizational debt.
+
+The system:
+
+1. Loads engineering artifacts
+2. Builds a reasoning graph
+3. Reconstructs historical context
+4. Detects reasoning debt
+5. Generates audit reports
+6. Produces remediation plans
+
+---
+
+# OpenBMB Integration
+
+### Model
+
+**MiniCPM4.1-8B**
+
+### Role
+
+AI Critic Engine
+
+The model reviews reconstructed reasoning chains and identifies:
+
+* Missing Context
+* Weak Assumptions
+* Missing Evidence
+* Undocumented Alternatives
+* Reasoning Debt Risk
+* Suggested Missing Artifacts
+
+Architecture:
+
+Artifacts
+→ Reasoning Graph
+→ Reconstruction Engine
+→ MiniCPM4.1-8B Critic
+→ Audit Report
+
+The deterministic engine reconstructs the graph first.
+
+MiniCPM4.1-8B then performs reasoning review and critique.
+
+---
+
+# Key Features
+
+### Artifact Graph
+
+Visualizes relationships between:
+
+* Incidents
+* Decisions
+* ADRs
+* Fixes
+* Pull Requests
+* Investigations
+
+### Reconstructed Memory
+
+Recovers lost context from artifact chains.
+
+### AI Critic Reports
+
+Per-artifact analysis:
+
+* Missing Context
+* Weak Assumptions
+* Debt Risk
+* Suggested Artifacts
+* Confidence Score
+
+### Global Critic Summary
+
+Dataset-level reasoning audit.
+
+### Executive Summary
+
+Management-ready overview of reasoning health.
+
+### Remediation Plan
+
+Prioritized actions:
+
+* P1 Critical
+* P2 Important
+* P3 Governance
+
+### Markdown Audit Export
+
+Generates a complete reasoning audit report.
+
+---
+
+# Example Workflow
+
+Upload Dataset
+↓
+Build Reasoning Graph
+↓
+Reconstruct Decision History
+↓
+Detect Reasoning Debt
+↓
+Generate Executive Summary
+↓
+Generate Remediation Plan
+↓
+Export Audit Report
+
+---
+
+# Example Findings
+
+* Architectural decisions without documented rationale
+* ADRs written after implementation
+* Incidents linked to undocumented decisions
+* Missing rejected alternatives
+* Missing ownership trails
+
+---
+
+# Demo
+
+Hugging Face Space:
+[SPACE_LINK]
+
+Demo Video:
+[YOUTUBE_LINK]
+
+Social Post:
+https://x.com/Demion_L/status/2063671465271312628
+
+GitHub Repository:
+[GITHUB_LINK]
+
+---
+
+# Running Locally
+
+## Next.js
+
 ```bash
 npm install
-npm run build
-npm run start        # serves on http://localhost:3000
+npm run dev
 ```
 
-**Terminal 2 — Gradio wrapper:**
+## Gradio Wrapper
+
 ```bash
 pip install -r requirements.txt
-START_NEXTJS=0 python app.py   # Gradio on http://localhost:7860
+python app.py
 ```
-
-Open `http://localhost:7860` — Gradio embeds the Next.js app via iframe.
 
 ---
 
-### Option B — single command
+# Vision
 
-Let `app.py` build and start Next.js automatically:
+Organizations lose knowledge every day.
 
-```bash
-npm install          # install Node dependencies once
-pip install -r requirements.txt
+Reasoning Projector helps teams recover, preserve, and audit the reasoning behind important decisions before it disappears.
 
-python app.py        # builds Next.js if needed, starts both processes
-```
-
-`app.py` prints `[next]` prefixed logs from Next.js alongside its own output.
-The first run takes ~60 s while Next.js builds.
-
----
-
-## Environment variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `START_NEXTJS` | `1` | Set to `0` to skip starting Next.js (use when running it separately) |
-| `NEXTJS_PORT` | `3000` | Port Next.js listens on |
-| `NEXTJS_URL` | `http://localhost:3000` | URL the Gradio iframe points to. Override for external deployments. |
-| `GRADIO_PORT` | `7860` | Port Gradio listens on |
-
----
-
-## Refreshing nodes data
-
-Node data lives in `src/data/nodes.json`. To pull fresh data from GitHub:
-
-```bash
-GITHUB_TOKEN=ghp_xxx GITHUB_OWNER=myorg GITHUB_REPO=myrepo \
-  node scripts/fetch-memory.mjs
-```
-
-Without env vars the script writes the built-in mock dataset.
-
----
-
-## Project structure
-
-```
-.
-├── app/                  # Next.js App Router
-│   └── page.tsx          # MemoryReplay component (main UI)
-├── src/
-│   └── data/
-│       ├── nodes.json        # live node data (editable / auto-generated)
-│       └── nodes.schema.json # JSON schema for node validation
-├── scripts/
-│   └── fetch-memory.mjs  # fetches nodes from GitHub / Linear
-├── app.py                # Gradio wrapper (HF Spaces entry point)
-├── requirements.txt      # Python dependencies
-├── packages.txt          # apt packages installed on HF Spaces (nodejs, npm)
-└── README.md             # this file + HF Space metadata
-```
+The long-term goal is to make organizational reasoning as observable as application telemetry.
