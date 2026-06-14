@@ -7,7 +7,7 @@ colorTo: blue
 sdk: gradio
 app_file: app.py
 pinned: false
-short_description: Reconstruct software decisions, detect Reasoning Debt, and generate remediation plans.
+short_description: Detect reasoning debt in software decisions
 license: mit
 ---
 # 🧠 Reasoning Projector
