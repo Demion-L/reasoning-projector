@@ -17,7 +17,6 @@ On HF Spaces:
     This script builds (if needed) and starts Next.js automatically.
 """
 
-import json
 import os
 import socket
 import subprocess
@@ -139,27 +138,41 @@ _iframe_html = (
 )
 
 if ON_HF:
-    # On HF Spaces the iframe src can resolve back to the Gradio page (port 7860)
-    # if the proxy for port 3000 isn't ready, which causes infinite recursive
-    # embedding. Redirect the browser directly to the Next.js app instead —
-    # browsers stop redirect loops gracefully, iframe loops do not.
-    _nextjs_url_js = json.dumps(NEXTJS_URL)
+    # On HF Spaces, serve a static launcher page.
+    # Gradio strips <script> tags from gr.HTML, so JS redirects don't work.
+    # Iframes pointing to /proxy/3000/ can recurse back to this Gradio page if
+    # Next.js isn't ready. A plain <a> link avoids both problems.
     with gr.Blocks(
         title="Reasoning Projector",
         css="footer{display:none!important}",
     ) as demo:
         gr.HTML(f"""
-        <div style="display:flex;align-items:center;justify-content:center;
-                    height:80vh;font-family:'IBM Plex Mono',monospace;
-                    background:#020408;color:#4fc3f7;">
-          <div style="text-align:center;">
-            <p style="font-size:13px;letter-spacing:.1em;">LOADING REASONING PROJECTOR…</p>
-            <p style="font-size:11px;color:#4a7a8a;margin-top:8px;">
-              <a href="{NEXTJS_URL}" style="color:#4fc3f7;">Click here if not redirected</a>
-            </p>
-          </div>
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;min-height:70vh;
+                    font-family:'IBM Plex Mono',monospace;background:#020408;
+                    color:#c8d6e0;padding:2rem;text-align:center;">
+          <h1 style="font-size:22px;letter-spacing:.12em;color:#4fc3f7;margin:0 0 12px;">
+            🧠 REASONING PROJECTOR
+          </h1>
+          <p style="font-size:13px;color:#8aa8b8;max-width:480px;
+                    line-height:1.6;margin:0 0 32px;">
+            Replay the signal trail behind engineering decisions.
+            Surface the <em>Reasoning Debt</em> that no API can recover.
+          </p>
+          <a href="/proxy/3000/" target="_blank" rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:8px;
+                    padding:12px 28px;background:#04111a;
+                    color:#4fc3f7;border:1px solid #1a5c7c;border-radius:4px;
+                    font-family:'IBM Plex Mono',monospace;font-size:13px;
+                    letter-spacing:.1em;text-decoration:none;">
+            ↗ Open Reasoning Projector
+          </a>
+          <p style="font-size:11px;color:#4a7a8a;margin-top:20px;">
+            Direct link:
+            <a href="{NEXTJS_URL}" target="_blank" rel="noopener noreferrer"
+               style="color:#4a7a8a;">{NEXTJS_URL}</a>
+          </p>
         </div>
-        <script>window.location.replace({_nextjs_url_js});</script>
         """)
 else:
     with gr.Blocks(
