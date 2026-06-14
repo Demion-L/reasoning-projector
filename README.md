@@ -197,7 +197,7 @@ Hugging Face Space:
 https://huggingface.co/spaces/demionAlGrande/reasoning-projector-openbmb
 
 Demo Video:
-[YOUTUBE_LINK]
+https://youtu.be/M76tRlVk5nE
 
 Social Post:
 https://x.com/Demion_L/status/2063671465271312628
