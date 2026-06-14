@@ -8,8 +8,8 @@ sdk: gradio
 app_file: app.py
 pinned: false
 short_description: Reconstruct software decisions, detect Reasoning Debt, and generate remediation plans.
----------------------------------------------------------------------------------------------------------
-
+license: mit
+---
 # 🧠 Reasoning Projector
 
 ![OpenBMB](https://img.shields.io/badge/OpenBMB-Powered-blue)
@@ -203,7 +203,7 @@ Social Post:
 https://x.com/Demion_L/status/2063671465271312628
 
 GitHub Repository:
-[GITHUB_LINK]
+https://github.com/Demion-L/reasoning-projector
 
 ---
 
