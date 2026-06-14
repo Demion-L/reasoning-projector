@@ -38,7 +38,9 @@ async function chatCompletion(apiKey: string, prompt: string): Promise<string> {
     model: MODEL,
     messages: [{ role: "user", content: prompt }],
     max_tokens: 3072,
-    temperature: 0.1,
+    temperature: 0,
+    top_p: 1,
+    seed: 42,
   });
   console.log(`[critic:openbmb] request body: ${reqBody.slice(0, 500)}`);
 
