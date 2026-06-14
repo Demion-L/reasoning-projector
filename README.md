@@ -194,7 +194,7 @@ Export Audit Report
 # Demo
 
 Hugging Face Space:
-[SPACE_LINK]
+https://huggingface.co/spaces/demionAlGrande/reasoning-projector-openbmb
 
 Demo Video:
 [YOUTUBE_LINK]
