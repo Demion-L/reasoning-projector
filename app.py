@@ -1,9 +1,8 @@
 """
 Gradio wrapper for Reasoning Projector.
 
-Starts the Next.js app as a subprocess and embeds it via iframe.
-The Gradio interface satisfies the Build Small hackathon requirement
-(sdk: gradio); the Next.js app is the actual interactive experience.
+Starts the Next.js app as a subprocess then shows a static launcher page
+with a single link to the running Next.js app.
 
 Local usage (two-step):
     npm run build && npm run start   # terminal 1
@@ -33,17 +32,9 @@ NEXTJS_PORT = int(os.environ.get("NEXTJS_PORT", 3000))
 GRADIO_PORT = int(os.environ.get("GRADIO_PORT", 7860))
 ON_HF       = bool(os.environ.get("SPACE_ID"))
 
-def _default_nextjs_url(port: int) -> str:
-    # On HF Spaces, SPACE_ID is set (e.g. "demionAlGrande/reasoning-projector-openbmb").
-    # Chrome blocks iframes pointing at localhost from a public page, so use the
-    # Space's public proxy URL instead.
-    space_id = os.environ.get("SPACE_ID", "")
-    if space_id:
-        slug = space_id.lower().replace("/", "-")
-        return f"https://{slug}.hf.space/proxy/{port}/"
-    return f"http://localhost:{port}"
-
-NEXTJS_URL = os.environ.get("NEXTJS_URL") or _default_nextjs_url(NEXTJS_PORT)
+# On HF Spaces the button must use the relative proxy path — not the full
+# hf.space URL, which resolves back to the Gradio root (port 7860).
+APP_HREF = "/proxy/3000/" if ON_HF else f"http://localhost:{NEXTJS_PORT}"
 
 # On HF Spaces START_NEXTJS defaults to "1"; set to "0" to skip when you
 # start Next.js yourself in a separate terminal.
@@ -96,98 +87,38 @@ if START_NEXTJS:
 
 # ─── Gradio interface ─────────────────────────────────────────────────────────
 
-_DESCRIPTION = """\
-## What is Reasoning Projector?
-
-Every engineering decision carries invisible context:
-*who* made the call and *why*, which alternatives were
-considered and rejected, and what rationale was never
-written down.
-
-Over time this context evaporates. **Reasoning Projector**
-makes it visible by replaying the signal trail from
-incidents → decision → ADR, and surfaces the gaps —
-**Reasoning Debt** — that no API can recover.
-
-> Click **REPLAY MEMORY** on the canvas to reconstruct a decision.
-> Click any node to inspect its signals, rejected alternatives, and lost context.
-"""
-
-_link_html = (
-    f'<a href="{NEXTJS_URL}" target="_blank" rel="noopener noreferrer" '
-    f'style="display:inline-flex;align-items:center;gap:6px;'
-    f'padding:7px 18px;background:#0a0a14;'
-    f'color:#4fc3f7;border:1px solid #1a5c7c;border-radius:4px;'
-    f'font-family:\'SF Mono\',\'Fira Code\',monospace;'
-    f'text-decoration:none;font-size:12px;letter-spacing:.08em;">'
-    f'↗ Open Reasoning Projector'
-    f'</a>'
-)
-
-_iframe_html = (
-    f'<div style="border:1px solid #1a2a3a;border-radius:6px;overflow:hidden;">'
-    f'<iframe src="{NEXTJS_URL}" '
-    f'style="width:100%;height:720px;border:none;display:block;background:#020408;" '
-    f'title="Reasoning Projector" allow="cross-origin-isolated">'
-    f'<p style="padding:1rem;font-family:monospace;">'
-    f'Iframe blocked by your browser. '
-    f'<a href="{NEXTJS_URL}">Open Reasoning Projector</a>.'
-    f'</p>'
-    f'</iframe>'
-    f'</div>'
-)
-
-if ON_HF:
-    # On HF Spaces, serve a static launcher page.
-    # Gradio strips <script> tags from gr.HTML, so JS redirects don't work.
-    # Iframes pointing to /proxy/3000/ can recurse back to this Gradio page if
-    # Next.js isn't ready. A plain <a> link avoids both problems.
-    with gr.Blocks(
-        title="Reasoning Projector",
-        css="footer{display:none!important}",
-    ) as demo:
-        gr.HTML(f"""
-        <div style="display:flex;flex-direction:column;align-items:center;
-                    justify-content:center;min-height:70vh;
-                    font-family:'IBM Plex Mono',monospace;background:#020408;
-                    color:#c8d6e0;padding:2rem;text-align:center;">
-          <h1 style="font-size:22px;letter-spacing:.12em;color:#4fc3f7;margin:0 0 12px;">
-            🧠 REASONING PROJECTOR
-          </h1>
-          <p style="font-size:13px;color:#8aa8b8;max-width:480px;
-                    line-height:1.6;margin:0 0 32px;">
-            Replay the signal trail behind engineering decisions.
-            Surface the <em>Reasoning Debt</em> that no API can recover.
-          </p>
-          <a href="/proxy/3000/" target="_blank" rel="noopener noreferrer"
-             style="display:inline-flex;align-items:center;gap:8px;
-                    padding:12px 28px;background:#04111a;
-                    color:#4fc3f7;border:1px solid #1a5c7c;border-radius:4px;
-                    font-family:'IBM Plex Mono',monospace;font-size:13px;
-                    letter-spacing:.1em;text-decoration:none;">
-            ↗ Open Reasoning Projector
-          </a>
-          <p style="font-size:11px;color:#4a7a8a;margin-top:20px;">
-            Direct link:
-            <a href="{NEXTJS_URL}" target="_blank" rel="noopener noreferrer"
-               style="color:#4a7a8a;">{NEXTJS_URL}</a>
-          </p>
-        </div>
-        """)
-else:
-    with gr.Blocks(
-        title="Reasoning Projector",
-        theme=gr.themes.Base(
-            primary_hue="blue",
-            neutral_hue="slate",
-            font=gr.themes.GoogleFont("IBM Plex Mono"),
-        ),
-        css="footer{display:none!important}",
-    ) as demo:
-        gr.Markdown("# 🧠 Reasoning Projector")
-        gr.Markdown(_DESCRIPTION)
-        gr.HTML(_link_html)
-        gr.HTML(_iframe_html)
+with gr.Blocks(
+    title="Reasoning Projector",
+    theme=gr.themes.Base(
+        primary_hue="blue",
+        neutral_hue="slate",
+        font=gr.themes.GoogleFont("IBM Plex Mono"),
+    ),
+    css="footer{display:none!important}",
+) as demo:
+    gr.HTML(f"""
+    <div style="display:flex;flex-direction:column;align-items:center;
+                justify-content:center;min-height:70vh;
+                font-family:'IBM Plex Mono',monospace;background:#020408;
+                color:#c8d6e0;padding:2rem;text-align:center;">
+      <h1 style="font-size:22px;letter-spacing:.12em;color:#4fc3f7;margin:0 0 12px;">
+        🧠 REASONING PROJECTOR
+      </h1>
+      <p style="font-size:13px;color:#8aa8b8;max-width:480px;
+                line-height:1.6;margin:0 0 32px;">
+        Replay the signal trail behind engineering decisions.<br>
+        Surface the <em>Reasoning Debt</em> that no API can recover.
+      </p>
+      <a href="{APP_HREF}" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex;align-items:center;gap:8px;
+                padding:12px 28px;background:#04111a;
+                color:#4fc3f7;border:1px solid #1a5c7c;border-radius:4px;
+                font-family:'IBM Plex Mono',monospace;font-size:13px;
+                letter-spacing:.1em;text-decoration:none;">
+        ↗ Open Reasoning Projector
+      </a>
+    </div>
+    """)
 
 # ─── Launch ───────────────────────────────────────────────────────────────────
 
