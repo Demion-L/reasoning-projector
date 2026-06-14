@@ -1038,6 +1038,28 @@ export default function MemoryReplay() {
     return () => { cancelled = true; };
   }, [phase]);
 
+  // Warm-up: pre-fetch critic for the default node the moment graph phase starts.
+  // By the time the user inspects it, both server cache and client cache are hot.
+  useEffect(() => {
+    if (phase !== "graph" || selectedNode === null || activeNodes.length === 0) return;
+    const node = activeNodes[selectedNode];
+    if (!node) return;
+    const linked = getLinkedNodes(selectedNode, activeNodes, activeEdges);
+    const ck = node.id + "|" + linked.map(n => n.id).sort().join(",");
+    if (_criticCache.has(ck)) return;
+    fetch("/api/critic", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ node, linked }),
+    })
+      .then(res => res.json())
+      .then(({ report, source }: { report: CriticReport; source: "deterministic" | "openbmb" }) => {
+        if (source === "openbmb") _criticCache.set(ck, { report, source });
+      })
+      .catch(() => {}); // best-effort
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]); // only fires when phase changes, not on every node selection
+
   const step     = REPLAY_STEPS[replayIdx];
   const progress = ((replayIdx + 1) / REPLAY_STEPS.length) * 100;
 
@@ -1597,19 +1619,37 @@ function CriticBlock({ label, items, empty }: { label: string; items: string[]; 
   );
 }
 
+// ─── CLIENT-SIDE CRITIC CACHE ────────────────────────────────────────────────
+// Only LIVE (openbmb) responses are stored. Keyed by nodeId + sorted linked ids.
+// Persists for the browser session — re-clicking a node returns instantly.
+type _CriticEntry = { report: CriticReport; source: "openbmb" };
+const _criticCache = new Map<string, _CriticEntry>();
+
 function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }) {
   const [report,  setReport]  = useState<CriticReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [source,  setSource]  = useState<"deterministic" | "openbmb">("deterministic");
 
-  // Re-run the critic whenever the selected node (or its links) change.
-  // Keyed on stable ids — `linked` is a fresh array each render, so depending on
-  // the reference would re-fire on every parent tick.
-  const linkedKey = linked.map(n => n.id).join(",");
+  // Stable key — sorted so order differences in the linked array don't cause cache misses.
+  const linkedKey = linked.map(n => n.id).sort().join(",");
+  const ck = `${node.id}|${linkedKey}`;
+
+  // Monotonically increasing generation counter. Lets us discard responses that
+  // arrive after a newer request was dispatched within the same component instance.
+  const reqGen = useRef(0);
+
   useEffect(() => {
-    let cancelled = false;
+    // Return cached LIVE result immediately — skip the network round-trip.
+    const cached = _criticCache.get(ck);
+    if (cached) {
+      setReport(cached.report); setSource(cached.source); setLoading(false);
+      return;
+    }
+
+    const gen = ++reqGen.current;
     setLoading(true);
     setReport(null);
+
     fetch("/api/critic", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1617,15 +1657,30 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
     })
       .then(res => res.json())
       .then(({ report: r, source: s }: { report: CriticReport; source: "deterministic" | "openbmb" }) => {
-        if (!cancelled) { setReport(r); setSource(s); setLoading(false); }
+        if (gen !== reqGen.current) return; // stale — a newer request won
+        // Never let a deterministic fallback overwrite a cached LIVE report.
+        const live = _criticCache.get(ck);
+        if (live && s !== "openbmb") {
+          setReport(live.report); setSource(live.source);
+        } else {
+          if (s === "openbmb") _criticCache.set(ck, { report: r, source: s });
+          setReport(r); setSource(s);
+        }
+        setLoading(false);
       })
       .catch(() => {
-        // Network error: run mock locally so the UI never shows broken.
+        if (gen !== reqGen.current) return; // stale
+        // Prefer any cached LIVE report over a local deterministic fallback.
+        const live = _criticCache.get(ck);
+        if (live) {
+          setReport(live.report); setSource(live.source); setLoading(false);
+          return;
+        }
         runCritic({ node, linked }).then(r => {
-          if (!cancelled) { setReport(r); setSource("deterministic"); setLoading(false); }
+          if (gen !== reqGen.current) return; // stale
+          setReport(r); setSource("deterministic"); setLoading(false);
         });
       });
-    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.id, linkedKey]);
 
@@ -1726,8 +1781,10 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         borderTop: `0.5px solid rgba(15,55,90,0.5)`,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span style={{ fontSize: 9, color: source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
-          {`CRITIC · OpenBMB MiniCPM4.1-8B · ${source === "openbmb" ? "LIVE" : "SOURCE: DETERMINISTIC CRITIC"}`}
+        <span style={{ fontSize: 9, color: loading ? C.cyanDim : source === "openbmb" ? C.green : C.textDim, letterSpacing: "0.1em" }}>
+          {loading
+            ? "CRITIC · OpenBMB MiniCPM4.1-8B · ANALYZING WITH OPENBMB..."
+            : `CRITIC · OpenBMB MiniCPM4.1-8B · ${source === "openbmb" ? "LIVE" : "LOCAL FALLBACK"}`}
         </span>
         <span style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.1em" }}>
           {linked.length} LINKED ARTIFACT{linked.length === 1 ? "" : "S"}
