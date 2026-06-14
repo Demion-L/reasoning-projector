@@ -15,7 +15,7 @@
 
 import type { CriticProvider } from "../types";
 
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 60_000;
 
 const MODEL =
   process.env.OPENBMB_MODEL ?? "MiniCPM4.1-8B";
@@ -29,7 +29,18 @@ async function chatCompletion(apiKey: string, prompt: string): Promise<string> {
   const t0 = Date.now();
 
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => {
+    console.error(`[critic:openbmb] ✗ abort fired after ${TIMEOUT_MS}ms — aborting fetch`);
+    ctrl.abort();
+  }, TIMEOUT_MS);
+
+  const reqBody = JSON.stringify({
+    model: MODEL,
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 3072,
+    temperature: 0.1,
+  });
+  console.log(`[critic:openbmb] request body: ${reqBody.slice(0, 500)}`);
 
   let res: Response;
   try {
@@ -40,36 +51,48 @@ async function chatCompletion(apiKey: string, prompt: string): Promise<string> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1024,
-        temperature: 0.1,
-      }),
+      body: reqBody,
     });
+  } catch (err) {
+    clearTimeout(timer);
+    const elapsed = Date.now() - t0;
+    const name = err instanceof Error ? err.name : String(err);
+    const msg  = err instanceof Error ? err.message : String(err);
+    console.error(`[critic:openbmb] ✗ fetch threw after ${elapsed}ms — ${name}: ${msg}`);
+    throw err;
   } finally {
     clearTimeout(timer);
   }
 
   const elapsed = Date.now() - t0;
+  console.log(`[critic:openbmb] ← HTTP ${res.status} in ${elapsed}ms`);
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    console.error(`[critic:openbmb] ✗ HTTP ${res.status} in ${elapsed}ms — ${body.slice(0, 200)}`);
-    throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+    console.error(`[critic:openbmb] ✗ HTTP ${res.status} body: ${body.slice(0, 500)}`);
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 500)}`);
   }
 
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
+  const rawJson = await res.text();
+  console.log(`[critic:openbmb] response body: ${rawJson.slice(0, 500)}`);
+
+  let json: { choices?: { message?: { content?: string } }[] };
+  try {
+    json = JSON.parse(rawJson);
+  } catch (err) {
+    console.error(`[critic:openbmb] ✗ JSON parse failed: ${rawJson.slice(0, 200)}`);
+    throw new Error(`JSON parse error: ${rawJson.slice(0, 200)}`);
+  }
+
   const text = json.choices?.[0]?.message?.content ?? "";
 
   if (!text) {
-    console.error(`[critic:openbmb] ✗ empty response in ${elapsed}ms`);
+    console.error(`[critic:openbmb] ✗ empty content in response after ${elapsed}ms`);
     throw new Error("empty response from model");
   }
 
   console.log(`[critic:openbmb] ✓ ${elapsed}ms  model=${MODEL}  chars=${text.length}`);
+  console.log(`[critic:openbmb] assistant content:\n${text}`);
   return text;
 }
 

@@ -1541,6 +1541,44 @@ function ReconstructedMemory({ node, allNodes }: { node: NodeData; allNodes: Nod
 
 // ─── AI CRITIC REPORT ─────────────────────────────────────────────────────────
 
+const SCAN_MESSAGES = [
+  "analyzing reasoning lattice…",
+  "cross-referencing signal nodes…",
+  "detecting assumption gaps…",
+  "mapping lost context paths…",
+];
+
+function ScannerLoader() {
+  const [msgIdx, setMsgIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setMsgIdx(i => (i + 1) % SCAN_MESSAGES.length), 1800);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <span style={{ fontSize: 9, color: C.cyan, letterSpacing: "0.3em", fontFamily: C.font }}>
+        DEEP TRACE · SCANNING
+      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {(["TRACE", "AUDIT", "PROBE"] as const).map((label, i) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <span style={{ fontSize: 8, color: C.cyanDim, letterSpacing: "0.22em", width: 34, fontFamily: C.font }}>
+              {label}
+            </span>
+            <div style={{ position: "relative", flex: 1, height: 2, background: "rgba(79,195,247,0.08)", overflow: "hidden" }}>
+              <div className="rp-scan-beam" style={{ animationDelay: `${i * -0.53}s` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.05em", fontFamily: C.font }}>
+        {SCAN_MESSAGES[msgIdx]}
+      </span>
+    </div>
+  );
+}
+
 function CriticBlock({ label, items, empty }: { label: string; items: string[]; empty: string }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -1643,9 +1681,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
         <Brackets size={11} color="rgba(15,55,90,0.45)" />
 
         {loading || !report ? (
-          <div style={{ fontSize: 13, color: C.textDim, letterSpacing: "0.08em" }}>
-            scanning reasoning for gaps…
-          </div>
+          <ScannerLoader />
         ) : (
           <>
             <CriticBlock label="MISSING CONTEXT"    items={report.missingContext}     empty="none detected" />

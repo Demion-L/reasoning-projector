@@ -45,6 +45,28 @@ body {
 
 .rp-corner { animation: bracket-pulse 2.2s ease-in-out infinite; }
 
+@keyframes neural-pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 8px #4fc3f7, 0 0 16px rgba(79,195,247,0.4); }
+  50%      { opacity: 0.3; box-shadow: 0 0 3px #4fc3f7, 0 0 6px rgba(79,195,247,0.15); }
+}
+
+.rp-neural-dot { animation: neural-pulse 1.4s ease-in-out infinite; }
+
+@keyframes scan-beam {
+  0%        { transform: translateX(-100%); opacity: 0; }
+  8%        { opacity: 1; }
+  85%, 100% { transform: translateX(600%); opacity: 0; }
+}
+
+.rp-scan-beam {
+  position: absolute;
+  left: 0; top: 0;
+  width: 28%; height: 100%;
+  background: linear-gradient(90deg, transparent, #4fc3f7, transparent);
+  box-shadow: 0 0 8px #4fc3f7;
+  animation: scan-beam 1.6s ease-in-out infinite;
+}
+
 /* ── Custom scrollbars ───────────────────────────────────────────────────── */
 
 /* WebKit (Chrome, Edge, Safari) */
