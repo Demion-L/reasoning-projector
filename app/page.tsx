@@ -12,6 +12,7 @@ import {
   type ExecutiveSummary,
   type RemediationItem,
 } from "@/src/lib/critic";
+import { adaptReasoningProjectorV1 } from "@/src/lib/adapters/reasoningProjectorV1";
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ function normalizeInput(raw: unknown): unknown {
   if (Array.isArray(raw)) return raw;
   if (raw !== null && typeof raw === "object") {
     const o = raw as Record<string, unknown>;
+    if (o.$schema === "reasoning-projector/v1") return adaptReasoningProjectorV1(o);
     if (Array.isArray(o.nodes))     return o.nodes;
     if (Array.isArray(o.artifacts)) return o.artifacts;
   }
