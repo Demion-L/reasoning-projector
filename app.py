@@ -18,6 +18,7 @@ On HF Spaces:
 """
 
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -68,10 +69,24 @@ def _run_nextjs() -> None:
     for line in iter(proc.stdout.readline, b""):
         print("[next]", line.decode().rstrip(), flush=True)
 
+def _wait_for_port(port: int, timeout: int = 90) -> bool:
+    """Poll until the port accepts connections or timeout (seconds) is reached."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(1)
+    return False
+
 if START_NEXTJS:
     threading.Thread(target=_run_nextjs, daemon=True).start()
-    # Give Next.js time to bind the port before Gradio renders the iframe.
-    time.sleep(6)
+    print(f"[setup] Waiting for Next.js on port {NEXTJS_PORT}...", flush=True)
+    if _wait_for_port(NEXTJS_PORT):
+        print(f"[setup] Next.js is ready on port {NEXTJS_PORT}.", flush=True)
+    else:
+        print(f"[warn] Next.js did not become ready within 90 s — starting Gradio anyway.", flush=True)
 
 # ─── Gradio interface ─────────────────────────────────────────────────────────
 
