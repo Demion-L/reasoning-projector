@@ -30,7 +30,14 @@ import gradio as gr
 ROOT        = os.path.dirname(os.path.abspath(__file__))
 NEXTJS_PORT = int(os.environ.get("NEXTJS_PORT", 3000))
 GRADIO_PORT = int(os.environ.get("GRADIO_PORT", 7860))
-NEXTJS_URL  = os.environ.get("NEXTJS_URL", f"http://localhost:{NEXTJS_PORT}")
+
+# On HF Spaces, SPACE_HOST is set (e.g. "demionalgrande-reasoning-projector-openbmb.hf.space").
+# Visitors cannot reach localhost — traffic must go through the Space's /proxy/<port>/ path.
+_space_host = os.environ.get("SPACE_HOST")
+if _space_host:
+    NEXTJS_URL = f"https://{_space_host}/proxy/{NEXTJS_PORT}/"
+else:
+    NEXTJS_URL = os.environ.get("NEXTJS_URL", f"http://localhost:{NEXTJS_PORT}")
 
 # On HF Spaces START_NEXTJS defaults to "1"; set to "0" to skip when you
 # start Next.js yourself in a separate terminal.
