@@ -1,20 +1,11 @@
 """
 Gradio landing page for Reasoning Projector (Build Small 2026 submission).
 
-The live application is deployed on Vercel. This Space is a stable
-submission landing page — no iframe, no subprocess, no proxy links.
-
-After deploying to Vercel, set VERCEL_APP_URL as a HF Space secret:
-  Settings → Variables and secrets → New secret
-  VERCEL_APP_URL = https://your-project.vercel.app
+Static page only — no iframe, no subprocess, no proxy, no localhost.
+The live application runs on Vercel at https://reasoning-projector.vercel.app/
 """
 
-import os
-
 import gradio as gr
-
-GRADIO_PORT   = int(os.environ.get("GRADIO_PORT", 7860))
-VERCEL_APP_URL = os.environ.get("VERCEL_APP_URL", "https://reasoning-projector.vercel.app")
 
 _DESCRIPTION = """\
 ## What is Reasoning Projector?
@@ -34,16 +25,16 @@ remediation plan.
 > **Live app is demonstrated in the video.**
 """
 
-_LINKS = f"""\
+_LINKS = """\
 <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
-  <a href="{VERCEL_APP_URL}"
+  <a href="https://reasoning-projector.vercel.app/"
      target="_blank" rel="noopener noreferrer"
      style="display:inline-flex;align-items:center;gap:8px;
             padding:9px 20px;background:#0a0a14;
             color:#4fc3f7;border:1px solid #1a5c7c;border-radius:4px;
             font-family:'SF Mono','Fira Code',monospace;
             text-decoration:none;font-size:13px;letter-spacing:.06em;width:fit-content;">
-    ↗ Open Reasoning Projector
+    ↗ Open Live App
   </a>
   <a href="https://youtu.be/M76tRlVk5nE"
      target="_blank" rel="noopener noreferrer"
@@ -89,7 +80,4 @@ with gr.Blocks(
     gr.HTML(_LINKS)
 
 if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=GRADIO_PORT,
-    )
+    demo.launch(server_name="0.0.0.0", server_port=7860)
