@@ -66,11 +66,22 @@ type ValidationResult =
   | { ok: false; error: string; nodesLoaded: boolean; edgesResolved: boolean; schemaValid: boolean }
   | { ok: true;  nodes: NodeData[]; nodesLoaded: true; edgesResolved: true; schemaValid: true };
 
+function normalizeInput(raw: unknown): unknown {
+  if (Array.isArray(raw)) return raw;
+  if (raw !== null && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    if (Array.isArray(o.nodes))     return o.nodes;
+    if (Array.isArray(o.artifacts)) return o.artifacts;
+  }
+  return raw;
+}
+
 function validateDataset(data: unknown): ValidationResult {
-  if (!Array.isArray(data) || data.length === 0)
-    return { ok: false, error: "Expected a non-empty array of nodes", nodesLoaded: false, edgesResolved: false, schemaValid: false };
+  const normalized = normalizeInput(data);
+  if (!Array.isArray(normalized) || normalized.length === 0)
+    return { ok: false, error: "Expected a non-empty array of nodes, or an object with nodes/artifacts array.", nodesLoaded: false, edgesResolved: false, schemaValid: false };
   const required = ["id","tag","x","y","w","h","who","when","what","signals","alts","lost"] as const;
-  for (const item of data) {
+  for (const item of normalized) {
     if (typeof item !== "object" || item === null)
       return { ok: false, error: "Each element must be an object", nodesLoaded: true, edgesResolved: false, schemaValid: false };
     for (const f of required)
@@ -80,7 +91,7 @@ function validateDataset(data: unknown): ValidationResult {
     if (!Array.isArray(n.signals) || !Array.isArray(n.alts))
       return { ok: false, error: `"signals" and "alts" must be arrays`, nodesLoaded: true, edgesResolved: true, schemaValid: false };
   }
-  return { ok: true, nodes: data as NodeData[], nodesLoaded: true, edgesResolved: true, schemaValid: true };
+  return { ok: true, nodes: normalized as NodeData[], nodesLoaded: true, edgesResolved: true, schemaValid: true };
 }
 
 function computeSummary(nodes: NodeData[]) {
