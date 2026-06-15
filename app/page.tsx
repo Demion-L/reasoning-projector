@@ -13,16 +13,6 @@ import {
   type RemediationItem,
 } from "@/src/lib/critic";
 
-// ─── API BASE ─────────────────────────────────────────────────────────────────
-// On HuggingFace Spaces, the app runs at /proxy/3000/. Relative fetch("/api/...")
-// would hit Gradio (port 7860) instead of Next.js. Detect the proxy prefix from
-// the current URL so API calls are always routed to the right server.
-function apiBase(): string {
-  if (typeof window === "undefined") return "";
-  const m = window.location.pathname.match(/^\/proxy\/\d+/);
-  return m ? m[0] : "";
-}
-
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
 // Fallback used when nodes.json is absent or empty.
@@ -1057,7 +1047,7 @@ export default function MemoryReplay() {
     const linked = getLinkedNodes(selectedNode, activeNodes, activeEdges);
     const ck = node.id + "|" + linked.map(n => n.id).sort().join(",");
     if (_criticCache.has(ck)) return;
-    fetch(apiBase() + "/api/critic", {
+    fetch("/api/critic", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ node, linked }),
@@ -1660,7 +1650,7 @@ function AICriticReport({ node, linked }: { node: NodeData; linked: NodeData[] }
     setLoading(true);
     setReport(null);
 
-    fetch(apiBase() + "/api/critic", {
+    fetch("/api/critic", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ node, linked }),
@@ -2368,7 +2358,7 @@ function ExportButton({ nodes, edges }: { nodes: NodeData[]; edges: { from: numb
       nodes.map(async (node, nodeIdx) => {
         const linked = getLinkedNodes(nodeIdx, nodes, edges);
         try {
-          const res = await fetch(apiBase() + "/api/critic", {
+          const res = await fetch("/api/critic", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ node, linked }),
